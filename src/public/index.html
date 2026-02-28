@@ -57,21 +57,21 @@
     .clear-btn {
       position: absolute;
       right: 0.5rem;
-      background: none;
+      background: #e74c3c;
       border: none;
-      font-size: 1.2rem;
-      color: #999;
+      font-size: 0.65rem;
+      color: #fff;
       cursor: pointer;
-      padding: 0.2rem 0.4rem;
-      line-height: 1;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+      text-align: center;
+      padding: 0;
       border-radius: 50%;
       display: none;
     }
 
-    .clear-btn:hover { color: #333; }
-
-    .input-wrap input:not(:placeholder-shown) ~ .clear-btn,
-    .input-wrap input.has-value ~ .clear-btn { display: block; }
+    .clear-btn:hover { background: #c0392b; }
 
     .input-group button {
       padding: 0.75rem 1.5rem;
@@ -690,21 +690,13 @@
       }
     }
 
-    async function downloadImage(filename) {
-      try {
-        const res = await fetch(`/api/images/${encodeURIComponent(filename)}`);
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        alert('Download failed: ' + err.message);
-      }
+    function downloadImage(filename) {
+      const a = document.createElement('a');
+      a.href = `/api/download/${encodeURIComponent(filename)}`;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
 
     async function downloadAll() {
@@ -717,7 +709,8 @@
       }
 
       for (const filename of filenames) {
-        await downloadImage(filename);
+        downloadImage(filename);
+        await new Promise((r) => setTimeout(r, 300));
       }
     }
   </script>

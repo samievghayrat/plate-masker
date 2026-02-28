@@ -58,6 +58,18 @@ app.get('/api/images/:filename', (req, res) => {
   res.type('image/jpeg').sendFile(path.resolve(filePath));
 });
 
+// Download a processed image (forces browser save)
+app.get('/api/download/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const filePath = path.join(OUTPUT_DIR, filename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Image not found' });
+  }
+
+  res.download(path.resolve(filePath), filename);
+});
+
 // Delete a processed image
 app.delete('/api/images/:filename', (req, res) => {
   const filename = path.basename(req.params.filename); // prevent path traversal

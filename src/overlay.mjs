@@ -30,16 +30,20 @@ export async function applyWatermark(imageBuffer) {
   const imgW = metadata.width;
   const imgH = metadata.height;
 
-  const text = 'GHAYRAT +82-10-9922-1601';
-  const fontSize = Math.max(14, Math.round(imgW * 0.02));
-  const padX = Math.round(fontSize * 0.5);
-  const padY = Math.round(fontSize * 0.3);
-  const bgW = Math.round(text.length * fontSize * 0.6 + padX * 2);
-  const bgH = Math.round(fontSize + padY * 2);
+  const line1 = 'GHAYRAT';
+  const line2 = '+82-10-9922-1601';
+  const fontSize = Math.max(20, Math.round(imgW * 0.035));
+  const padX = Math.round(fontSize * 0.6);
+  const padY = Math.round(fontSize * 0.4);
+  const lineGap = Math.round(fontSize * 0.3);
+  const longerText = line2.length > line1.length ? line2 : line1;
+  const bgW = Math.round(longerText.length * fontSize * 0.6 + padX * 2);
+  const bgH = Math.round(fontSize * 2 + lineGap + padY * 2);
 
   const svg = `<svg width="${bgW}" height="${bgH}" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="${bgW}" height="${bgH}" fill="rgba(0,0,0,0.5)" rx="4" ry="4"/>
-  <text x="${padX}" y="${fontSize + padY - 2}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white">${text}</text>
+  <rect x="0" y="0" width="${bgW}" height="${bgH}" fill="rgba(0,0,0,0.5)" rx="6" ry="6"/>
+  <text x="${padX}" y="${fontSize + padY - 2}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="white">${line1}</text>
+  <text x="${padX}" y="${fontSize * 2 + lineGap + padY - 2}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white">${line2}</text>
 </svg>`;
 
   return sharp(imageBuffer)
