@@ -412,10 +412,11 @@
           body: JSON.stringify({ url }),
         });
 
-        const data = await res.json();
+        const text = (await res.text()).trim();
+        const data = JSON.parse(text);
 
-        if (!res.ok) {
-          throw new Error(data.error || 'Processing failed');
+        if (data.error) {
+          throw new Error(data.error);
         }
 
         renderResults(data);

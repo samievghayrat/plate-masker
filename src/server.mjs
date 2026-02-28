@@ -43,13 +43,22 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Process a URL
+// Process a URL (uses chunked transfer to keep mobile connections alive)
 app.post('/api/process', async (req, res) => {
   const { url } = req.body;
 
   if (!url || !isValidUrl(url)) {
     return res.status(400).json({ error: 'Invalid URL. Please provide a valid HTTP/HTTPS URL.' });
   }
+
+  // Disable request timeout for long processing
+  req.setTimeout(0);
+  res.setTimeout(0);
+
+  // Send chunked response with keep-alive spaces to prevent mobile timeout
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  const keepAlive = setInterval(() => res.write(' '), 10000);
 
   try {
     console.log(`[server] Processing: ${url}`);
@@ -60,11 +69,13 @@ app.post('/api/process', async (req, res) => {
       platesFound: r.platesFound,
     }));
 
+    clearInterval(keepAlive);
     console.log(`[server] Done — ${results.length} image(s) processed`);
-    res.json(response);
+    res.end(JSON.stringify(response));
   } catch (err) {
+    clearInterval(keepAlive);
     console.error(`[server] Error: ${err.message}`);
-    res.status(500).json({ error: err.message });
+    res.end(JSON.stringify({ error: err.message }));
   }
 });
 
