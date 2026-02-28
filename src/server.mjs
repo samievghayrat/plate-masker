@@ -58,7 +58,7 @@ app.post('/api/process', async (req, res) => {
   // Send chunked response with keep-alive spaces to prevent mobile timeout
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Transfer-Encoding', 'chunked');
-  const keepAlive = setInterval(() => res.write(' '), 10000);
+  const keepAlive = setInterval(() => res.write(' '), 5000);
 
   try {
     console.log(`[server] Processing: ${url}`);
