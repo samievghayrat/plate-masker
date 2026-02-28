@@ -43,40 +43,43 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Process a URL (uses chunked transfer to keep mobile connections alive)
-app.post('/api/process', async (req, res) => {
+// Async job queue for processing
+const jobs = new Map();
+let jobCounter = 0;
+
+// Start processing a URL (returns immediately with job ID)
+app.post('/api/process', (req, res) => {
   const { url } = req.body;
 
   if (!url || !isValidUrl(url)) {
     return res.status(400).json({ error: 'Invalid URL. Please provide a valid HTTP/HTTPS URL.' });
   }
 
-  // Disable request timeout for long processing
-  req.setTimeout(0);
-  res.setTimeout(0);
+  const jobId = String(++jobCounter);
+  jobs.set(jobId, { status: 'processing', url });
 
-  // Send chunked response with keep-alive spaces to prevent mobile timeout
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Transfer-Encoding', 'chunked');
-  const keepAlive = setInterval(() => res.write(' '), 5000);
+  console.log(`[server] Job ${jobId} started: ${url}`);
+  res.json({ jobId });
 
-  try {
-    console.log(`[server] Processing: ${url}`);
-    const results = await processUrl(url);
-
+  // Process in background
+  processUrl(url).then((results) => {
     const response = results.map((r) => ({
       filename: r.filename,
       platesFound: r.platesFound,
     }));
+    jobs.set(jobId, { status: 'done', results: response });
+    console.log(`[server] Job ${jobId} done — ${results.length} image(s) processed`);
+  }).catch((err) => {
+    jobs.set(jobId, { status: 'error', error: err.message });
+    console.error(`[server] Job ${jobId} error: ${err.message}`);
+  });
+});
 
-    clearInterval(keepAlive);
-    console.log(`[server] Done — ${results.length} image(s) processed`);
-    res.end(JSON.stringify(response));
-  } catch (err) {
-    clearInterval(keepAlive);
-    console.error(`[server] Error: ${err.message}`);
-    res.end(JSON.stringify({ error: err.message }));
-  }
+// Poll job status
+app.get('/api/jobs/:id', (req, res) => {
+  const job = jobs.get(req.params.id);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  res.json(job);
 });
 
 // Serve processed images from output directory
