@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plate Masker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    /* Input section */
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .input-group input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-group input:focus {
+      border-color: #4a90d9;
+    }
+
+    .input-group button {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+
+    .input-group button:hover { background: #357abd; }
+    .input-group button:disabled { background: #aaa; cursor: not-allowed; }
+
+    /* Status */
+    .status {
+      text-align: center;
+      padding: 2rem;
+      display: none;
+    }
+
+    .status.visible { display: block; }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 4px solid #ddd;
+      border-top-color: #4a90d9;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      color: #c0392b;
+      background: #fdecea;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    /* Results grid */
+    .results-header {
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .results-header.visible { display: flex; }
+
+    .results-header h2 { font-size: 1.1rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: box-shadow 0.2s;
+    }
+
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+
+    .card img {
+      width: 100%;
+      display: block;
+      cursor: pointer;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0.75rem;
+    }
+
+    .badge {
+      font-size: 0.8rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .badge.masked { background: #d4edda; color: #155724; }
+    .badge.none   { background: #fff3cd; color: #856404; }
+
+    .download-btn {
+      font-size: 0.85rem;
+      padding: 0.35rem 0.7rem;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .download-btn:hover { background: #357abd; }
+
+    .download-all-btn {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .download-all-btn:hover { background: #1e8449; }
+
+    .delete-btn {
+      font-size: 0.85rem;
+      padding: 0.35rem 0.7rem;
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover { background: #c0392b; }
+
+    .edit-btn {
+      font-size: 0.85rem;
+      padding: 0.35rem 0.7rem;
+      background: #8e44ad;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .edit-btn:hover { background: #71368a; }
+
+    .reprocess-btn {
+      font-size: 0.85rem;
+      padding: 0.35rem 0.7rem;
+      background: #e67e22;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .reprocess-btn:hover { background: #d35400; }
+
+    .card-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .modal-header h3 { font-size: 1rem; }
+
+    .modal-body {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      padding: 0.5rem;
+      background: #f0f0f0;
+    }
+
+    .modal-body canvas {
+      cursor: crosshair;
+      max-width: 100%;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid #eee;
+    }
+
+    .modal-footer button {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-undo { background: #95a5a6; color: #fff; }
+    .btn-undo:hover { background: #7f8c8d; }
+    .btn-clear { background: #e74c3c; color: #fff; }
+    .btn-clear:hover { background: #c0392b; }
+    .btn-cancel { background: #bdc3c7; color: #333; }
+    .btn-cancel:hover { background: #a6acaf; }
+    .btn-apply { background: #27ae60; color: #fff; }
+    .btn-apply:hover { background: #1e8449; }
+
+    @media (max-width: 500px) {
+      .grid { grid-template-columns: 1fr; }
+      .input-group { flex-direction: column; }
+      .input-group button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Plate Masker</h1>
+
+    <div class="input-group">
+      <input type="url" id="urlInput" placeholder="Paste car listing URL..." autofocus>
+      <button id="processBtn" onclick="process()">Process</button>
+    </div>
+
+    <div class="error-msg" id="error"></div>
+
+    <div class="status" id="status">
+      <div class="spinner"></div>
+      <p>Processing images... this may take a minute.</p>
+    </div>
+
+    <div class="results-header" id="resultsHeader">
+      <h2 id="resultsTitle"></h2>
+      <button class="download-all-btn" onclick="downloadAll()">Download All</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- Manual Plate Cover Editor Modal -->
+  <div class="modal-overlay" id="editorModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="editorTitle">Draw rectangles over plates</h3>
+      </div>
+      <div class="modal-body">
+        <canvas id="editorCanvas"></canvas>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-undo" onclick="editorUndo()">Undo</button>
+        <button class="btn-clear" onclick="editorClearAll()">Clear All</button>
+        <button class="btn-cancel" onclick="editorClose()">Cancel</button>
+        <button class="btn-apply" id="editorApplyBtn" onclick="editorApply()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById('urlInput');
+    const processBtn = document.getElementById('processBtn');
+    const statusEl = document.getElementById('status');
+    const errorEl = document.getElementById('error');
+    const grid = document.getElementById('grid');
+    const resultsHeader = document.getElementById('resultsHeader');
+    const resultsTitle = document.getElementById('resultsTitle');
+
+    let currentFilenames = []; // track filenames from current batch
+
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') process();
+    });
+
+    async function process() {
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      // Reset UI
+      errorEl.classList.remove('visible');
+      grid.innerHTML = '';
+      resultsHeader.classList.remove('visible');
+      statusEl.classList.add('visible');
+      processBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Processing failed');
+        }
+
+        renderResults(data);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add('visible');
+      } finally {
+        statusEl.classList.remove('visible');
+        processBtn.disabled = false;
+      }
+    }
+
+    function renderResults(images) {
+      grid.innerHTML = '';
+      currentFilenames = images.map((i) => i.filename);
+
+      const masked = images.filter((i) => i.platesFound > 0).length;
+      resultsTitle.textContent = `${images.length} image(s) — ${masked} with plates masked`;
+      resultsHeader.classList.add('visible');
+
+      for (const img of images) {
+        const imgUrl = `/api/images/${encodeURIComponent(img.filename)}`;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const badgeClass = img.platesFound > 0 ? 'masked' : 'none';
+        const badgeText = img.platesFound > 0
+          ? `${img.platesFound} plate(s) masked`
+          : 'no plates found';
+
+        card.innerHTML = `
+          <img src="${imgUrl}" alt="${img.filename}" onclick="window.open('${imgUrl}', '_blank')">
+          <div class="card-footer">
+            <span class="badge ${badgeClass}" data-filename="${img.filename}">${badgeText}</span>
+            <div class="card-actions">
+              <button class="edit-btn" onclick="openEditor('${img.filename}')">Edit</button>
+              <button class="reprocess-btn" onclick="reprocessImage('${img.filename}', this)">Reprocess</button>
+              <a class="download-btn" href="${imgUrl}" download="${img.filename}">Download</a>
+              <button class="delete-btn" onclick="deleteImage('${img.filename}', this)">Delete</button>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      }
+    }
+    async function deleteImage(filename, btn) {
+
+      try {
+        const res = await fetch(`/api/images/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Delete failed');
+        }
+
+        const card = btn.closest('.card');
+        card.remove();
+
+        // Update the count in the header
+        const remaining = grid.querySelectorAll('.card').length;
+        if (remaining === 0) {
+          resultsHeader.classList.remove('visible');
+        } else {
+          const masked = grid.querySelectorAll('.badge.masked').length;
+          resultsTitle.textContent = `${remaining} image(s) — ${masked} with plates masked`;
+        }
+      } catch (err) {
+        alert('Failed to delete: ' + err.message);
+      }
+    }
+
+    // ========== Manual Plate Cover Editor ==========
+
+    const editorModal = document.getElementById('editorModal');
+    const editorCanvas = document.getElementById('editorCanvas');
+    const editorApplyBtn = document.getElementById('editorApplyBtn');
+    const ctx = editorCanvas.getContext('2d');
+
+    let editorFilename = '';
+    let editorImage = null;   // HTMLImageElement of the original
+    let editorRects = [];     // committed rectangles [{x0,y0,x1,y1}] in canvas coords
+    let drawStart = null;     // {x,y} while drawing
+
+    function openEditor(filename) {
+      editorFilename = filename;
+      editorRects = [];
+      drawStart = null;
+
+      // Load the original image (fall back to processed)
+      const origName = filename.replace(/\.jpg$/, '_original.jpg');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        editorImage = img;
+        // Size canvas to fit: max 800px wide, proportional height
+        const maxW = Math.min(800, window.innerWidth - 80);
+        const scale = maxW / img.naturalWidth;
+        editorCanvas.width = Math.round(img.naturalWidth * scale);
+        editorCanvas.height = Math.round(img.naturalHeight * scale);
+        editorDraw();
+        editorModal.classList.add('visible');
+      };
+      img.onerror = () => {
+        // Fall back to processed image
+        img.onerror = () => alert('Could not load image');
+        img.src = `/api/images/${encodeURIComponent(filename)}?t=${Date.now()}`;
+      };
+      img.src = `/api/images/${encodeURIComponent(origName)}?t=${Date.now()}`;
+    }
+
+    function editorDraw() {
+      if (!editorImage) return;
+      ctx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+      ctx.drawImage(editorImage, 0, 0, editorCanvas.width, editorCanvas.height);
+
+      // Draw committed rectangles
+      for (const r of editorRects) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+      }
+    }
+
+    function getCanvasPos(e) {
+      const rect = editorCanvas.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    }
+
+    editorCanvas.addEventListener('mousedown', (e) => {
+      drawStart = getCanvasPos(e);
+    });
+
+    editorCanvas.addEventListener('mousemove', (e) => {
+      if (!drawStart) return;
+      const pos = getCanvasPos(e);
+      editorDraw();
+      // Preview rectangle: red dashed outline
+      ctx.setLineDash([6, 3]);
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(drawStart.x, drawStart.y, pos.x - drawStart.x, pos.y - drawStart.y);
+      ctx.setLineDash([]);
+    });
+
+    editorCanvas.addEventListener('mouseup', (e) => {
+      if (!drawStart) return;
+      const pos = getCanvasPos(e);
+      const x0 = Math.min(drawStart.x, pos.x);
+      const y0 = Math.min(drawStart.y, pos.y);
+      const x1 = Math.max(drawStart.x, pos.x);
+      const y1 = Math.max(drawStart.y, pos.y);
+      // Only commit if rectangle is at least 5px in both dimensions
+      if (x1 - x0 > 5 && y1 - y0 > 5) {
+        editorRects.push({ x0, y0, x1, y1 });
+      }
+      drawStart = null;
+      editorDraw();
+    });
+
+    editorCanvas.addEventListener('mouseleave', () => {
+      if (drawStart) {
+        drawStart = null;
+        editorDraw();
+      }
+    });
+
+    function editorUndo() {
+      editorRects.pop();
+      editorDraw();
+    }
+
+    function editorClearAll() {
+      editorRects = [];
+      editorDraw();
+    }
+
+    function editorClose() {
+      editorModal.classList.remove('visible');
+      editorImage = null;
+      editorRects = [];
+      drawStart = null;
+    }
+
+    async function editorApply() {
+      if (editorRects.length === 0) {
+        alert('Draw at least one rectangle first.');
+        return;
+      }
+
+      // Scale canvas coords to image-space coords
+      const scaleX = editorImage.naturalWidth / editorCanvas.width;
+      const scaleY = editorImage.naturalHeight / editorCanvas.height;
+      const rectangles = editorRects.map((r) => ({
+        x0: Math.round(r.x0 * scaleX),
+        y0: Math.round(r.y0 * scaleY),
+        x1: Math.round(r.x1 * scaleX),
+        y1: Math.round(r.y1 * scaleY),
+      }));
+
+      editorApplyBtn.disabled = true;
+      editorApplyBtn.textContent = 'Applying...';
+
+      try {
+        const res = await fetch('/api/manual-overlay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: editorFilename, rectangles }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Manual overlay failed');
+
+        // Refresh the card image with cache-bust
+        refreshCardImage(editorFilename);
+        editorClose();
+      } catch (err) {
+        alert('Failed to apply: ' + err.message);
+      } finally {
+        editorApplyBtn.disabled = false;
+        editorApplyBtn.textContent = 'Apply';
+      }
+    }
+
+    // ========== Reprocess Single Image ==========
+
+    async function reprocessImage(filename, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      try {
+        const res = await fetch(`/api/reprocess/${encodeURIComponent(filename)}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Reprocess failed');
+
+        // Refresh the card image
+        refreshCardImage(filename);
+
+        // Update the badge
+        const badge = document.querySelector(`.badge[data-filename="${filename}"]`);
+        if (badge) {
+          if (data.platesFound > 0) {
+            badge.className = 'badge masked';
+            badge.textContent = `${data.platesFound} plate(s) masked`;
+          } else {
+            badge.className = 'badge none';
+            badge.textContent = 'no plates found';
+          }
+        }
+      } catch (err) {
+        alert('Reprocess failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Reprocess';
+      }
+    }
+
+    // ========== Helpers ==========
+
+    function refreshCardImage(filename) {
+      const imgs = grid.querySelectorAll('img');
+      for (const img of imgs) {
+        if (img.alt === filename) {
+          img.src = `/api/images/${encodeURIComponent(filename)}?t=${Date.now()}`;
+          break;
+        }
+      }
+    }
+
+    function downloadAll() {
+      // Collect filenames from currently visible cards
+      const badges = grid.querySelectorAll('.badge[data-filename]');
+      const filenames = [...badges].map((b) => b.dataset.filename);
+
+      if (filenames.length === 0) {
+        alert('No images to download.');
+        return;
+      }
+
+      // Trigger individual browser downloads for each image
+      for (const filename of filenames) {
+        const a = document.createElement('a');
+        a.href = `/api/images/${encodeURIComponent(filename)}`;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    }
+  </script>
+</body>
+</html>

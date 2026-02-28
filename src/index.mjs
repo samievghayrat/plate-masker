@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
+import 'dotenv/config';
 import { Command } from 'commander';
 import { processUrl } from './pipeline.mjs';
 import { isValidUrl } from './utils.mjs';
-import { OVERLAY_TEXT, OVERLAY_BG_COLOR, OUTPUT_DIR } from './config.mjs';
+import { OVERLAY_BG_COLOR, OUTPUT_DIR } from './config.mjs';
 
 const program = new Command();
 
@@ -13,8 +14,9 @@ program
   .version('1.0.0')
   .argument('<url>', 'Image URL or car listing page URL')
   .option('-o, --output <dir>', 'Output directory', OUTPUT_DIR)
-  .option('-t, --text <text>', 'Overlay text', OVERLAY_TEXT)
   .option('-c, --color <color>', 'Overlay background color (hex)', OVERLAY_BG_COLOR)
+  .option('--kcar-user <id>', 'Kcar auction user ID (overrides KCAR_USER_ID env var)')
+  .option('--kcar-pass <pw>', 'Kcar auction password (overrides KCAR_USER_PW env var)')
   .action(async (url, opts) => {
     if (!isValidUrl(url)) {
       console.error('Error: Invalid URL. Please provide a valid HTTP/HTTPS URL.');
@@ -24,14 +26,14 @@ program
     console.log('=== Plate Masker ===');
     console.log(`URL:    ${url}`);
     console.log(`Output: ${opts.output}`);
-    console.log(`Text:   ${opts.text}`);
     console.log(`Color:  ${opts.color}`);
 
     try {
       const results = await processUrl(url, {
         output: opts.output,
-        text: opts.text,
         color: opts.color,
+        kcarUser: opts.kcarUser,
+        kcarPass: opts.kcarPass,
       });
 
       console.log('\n=== Summary ===');

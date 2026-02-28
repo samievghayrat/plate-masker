@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { acquireImages } from './acquire.mjs';
 import { detectPlates, terminateWorker } from './detect.mjs';
-import { applyOverlays } from './overlay.mjs';
+import { applyOverlays, applyWatermark } from './overlay.mjs';
 import { ensureJpegExtension } from './utils.mjs';
 import { OUTPUT_DIR } from './config.mjs';
 
@@ -17,7 +17,7 @@ export async function processUrl(url, options = {}) {
 
   // Step 1: Acquire images
   console.log('\n=== Step 1: Acquiring images ===');
-  const images = await acquireImages(url);
+  const images = await acquireImages(url, options);
   console.log(`[pipeline] Acquired ${images.length} image(s)\n`);
 
   const results = [];
@@ -40,16 +40,23 @@ export async function processUrl(url, options = {}) {
     }
     const outputPath = path.join(outputDir, outputFilename);
 
+    // Save the original (unprocessed) image for manual editing / reprocessing
+    const originalFilename = outputFilename.replace(/\.jpg$/, '_original.jpg');
+    const originalPath = path.join(outputDir, originalFilename);
+    fs.writeFileSync(originalPath, buffer);
+
     if (plates.length === 0) {
       console.warn(`[pipeline] WARNING: No plates detected in ${filename}. Saving original.`);
       outputBuffer = buffer;
     } else {
       console.log(`--- Step 3: Applying overlay to ${plates.length} plate(s) ---`);
       outputBuffer = await applyOverlays(buffer, plates, {
-        text: options.text,
         color: options.color,
       });
     }
+
+    // Step 3.5: Apply watermark
+    outputBuffer = await applyWatermark(outputBuffer);
 
     // Step 4: Save
     fs.writeFileSync(outputPath, outputBuffer);
@@ -59,6 +66,7 @@ export async function processUrl(url, options = {}) {
       filename: outputFilename,
       path: outputPath,
       platesFound: plates.length,
+      buffer: outputBuffer,
     });
   }
 

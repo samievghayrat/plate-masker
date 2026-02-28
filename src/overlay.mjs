@@ -1,22 +1,12 @@
 import sharp from 'sharp';
 import {
-  OVERLAY_TEXT,
   OVERLAY_BG_COLOR,
-  OVERLAY_TEXT_COLOR,
   JPEG_QUALITY,
 } from './config.mjs';
-import { xmlEscape } from './utils.mjs';
 
-function generateSvgOverlay(bbox, text, bgColor, textColor, angle) {
+function generateSvgOverlay(bbox, bgColor, angle) {
   const totalW = bbox.x1 - bbox.x0;
   const totalH = bbox.y1 - bbox.y0;
-
-  // Scale font to fit within the plate bbox
-  const maxFontByHeight = totalH * 0.65;
-  const maxFontByWidth = (totalW * 0.9) / (text.length * 0.55);
-  const fontSize = Math.max(8, Math.floor(Math.min(maxFontByHeight, maxFontByWidth)));
-
-  const escapedText = xmlEscape(text);
 
   // When rotated, we need a larger canvas to avoid clipping
   const rad = Math.abs(angle) * (Math.PI / 180);
@@ -29,19 +19,37 @@ function generateSvgOverlay(bbox, text, bgColor, textColor, angle) {
   const svg = `<svg width="${canvasW}" height="${canvasH}" xmlns="http://www.w3.org/2000/svg">
   <g transform="rotate(${angle}, ${cx}, ${cy})">
     <rect x="${(canvasW - totalW) / 2}" y="${(canvasH - totalH) / 2}" width="${totalW}" height="${totalH}" fill="${bgColor}" rx="3" ry="3"/>
-    <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central"
-          font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="bold"
-          fill="${textColor}">${escapedText}</text>
   </g>
 </svg>`;
 
   return { svg, canvasW, canvasH };
 }
 
+export async function applyWatermark(imageBuffer) {
+  const metadata = await sharp(imageBuffer).metadata();
+  const imgW = metadata.width;
+  const imgH = metadata.height;
+
+  const text = 'GHAYRAT +82-10-9922-1601';
+  const fontSize = Math.max(14, Math.round(imgW * 0.02));
+  const padX = Math.round(fontSize * 0.5);
+  const padY = Math.round(fontSize * 0.3);
+  const bgW = Math.round(text.length * fontSize * 0.6 + padX * 2);
+  const bgH = Math.round(fontSize + padY * 2);
+
+  const svg = `<svg width="${bgW}" height="${bgH}" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="${bgW}" height="${bgH}" fill="rgba(0,0,0,0.5)" rx="4" ry="4"/>
+  <text x="${padX}" y="${fontSize + padY - 2}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white">${text}</text>
+</svg>`;
+
+  return sharp(imageBuffer)
+    .composite([{ input: Buffer.from(svg), left: 10, top: 10 }])
+    .jpeg({ quality: JPEG_QUALITY })
+    .toBuffer();
+}
+
 export async function applyOverlays(imageBuffer, plates, options = {}) {
-  const text = options.text || OVERLAY_TEXT;
   const bgColor = options.color || OVERLAY_BG_COLOR;
-  const textColor = OVERLAY_TEXT_COLOR;
 
   if (plates.length === 0) {
     return imageBuffer;
@@ -54,10 +62,11 @@ export async function applyOverlays(imageBuffer, plates, options = {}) {
 
   for (const bbox of plates) {
     const angle = bbox.angle || 0;
-    const { svg, canvasW, canvasH } = generateSvgOverlay(
-      bbox, text, bgColor, textColor, angle
-    );
+    const { svg, canvasW, canvasH } = generateSvgOverlay(bbox, bgColor, angle);
     const svgBuffer = Buffer.from(svg);
+
+    // Skip if overlay is larger than the image
+    if (canvasW > imgW || canvasH > imgH) continue;
 
     // Center the rotated overlay on the bbox center
     const bboxCx = (bbox.x0 + bbox.x1) / 2;
