@@ -198,7 +198,7 @@ async function refinePlate(imageBuffer, bbox, imgW, imgH) {
       plateW = bw;
       plateH = bw / PLATE_ASPECT_RATIO;
     }
-  } else if (bboxAspect < 3.0) {
+  } else if (bboxAspect < 4.0) {
     // Nearly straight but bbox is too square — use standard aspect ratio
     plateW = bw;
     plateH = bw / PLATE_ASPECT_RATIO;
