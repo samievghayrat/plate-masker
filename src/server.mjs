@@ -8,9 +8,31 @@ import { processUrl } from './pipeline.mjs';
 import { detectPlates } from './detect.mjs';
 import { applyOverlays, applyWatermark } from './overlay.mjs';
 import { isValidUrl } from './utils.mjs';
-import { OUTPUT_DIR } from './config.mjs';
+import { OUTPUT_DIR, MODEL_PATH } from './config.mjs';
+import axios from 'axios';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const MODEL_URL = 'https://huggingface.co/morsetechlab/yolov11-license-plate-detection/resolve/main/license-plate-finetune-v1n.onnx';
+
+async function ensureModel() {
+  if (fs.existsSync(MODEL_PATH)) return;
+  console.log('[server] Model not found, downloading...');
+  const modelDir = path.dirname(MODEL_PATH);
+  if (!fs.existsSync(modelDir)) fs.mkdirSync(modelDir, { recursive: true });
+  for (let i = 1; i <= 3; i++) {
+    try {
+      const resp = await axios.get(MODEL_URL, { responseType: 'arraybuffer', timeout: 120000 });
+      fs.writeFileSync(MODEL_PATH, Buffer.from(resp.data));
+      console.log(`[server] Model downloaded (${(resp.data.byteLength / 1e6).toFixed(1)} MB)`);
+      return;
+    } catch (err) {
+      console.error(`[server] Model download attempt ${i} failed: ${err.message}`);
+      if (i < 3) await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  console.error('[server] WARNING: Model download failed. Plate detection will not work.');
+}
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -198,6 +220,8 @@ app.post('/api/download-all', (req, res) => {
   archive.finalize();
 });
 
-app.listen(PORT, () => {
-  console.log(`[server] Plate Masker web UI running at http://localhost:${PORT}`);
+ensureModel().then(() => {
+  app.listen(PORT, () => {
+    console.log(`[server] Plate Masker web UI running at http://localhost:${PORT}`);
+  });
 });

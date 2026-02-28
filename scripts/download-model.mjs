@@ -9,7 +9,7 @@ const MODEL_FILE = 'license-plate-finetune-v1n.onnx';
 const MODEL_PATH = path.join(MODEL_DIR, MODEL_FILE);
 const MODEL_URL = `https://huggingface.co/morsetechlab/yolov11-license-plate-detection/resolve/main/${MODEL_FILE}`;
 
-async function download() {
+async function download(retries = 3) {
   if (fs.existsSync(MODEL_PATH)) {
     const stat = fs.statSync(MODEL_PATH);
     console.log(`Model already exists (${(stat.size / 1e6).toFixed(1)} MB): ${MODEL_PATH}`);
@@ -17,16 +17,30 @@ async function download() {
   }
 
   fs.mkdirSync(MODEL_DIR, { recursive: true });
-  console.log(`Downloading ${MODEL_FILE} from Hugging Face...`);
 
-  const response = await axios.get(MODEL_URL, { responseType: 'arraybuffer' });
-  fs.writeFileSync(MODEL_PATH, Buffer.from(response.data));
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Downloading ${MODEL_FILE} from Hugging Face (attempt ${attempt}/${retries})...`);
+      const response = await axios.get(MODEL_URL, {
+        responseType: 'arraybuffer',
+        timeout: 60000,
+      });
+      fs.writeFileSync(MODEL_PATH, Buffer.from(response.data));
+      const stat = fs.statSync(MODEL_PATH);
+      console.log(`Downloaded ${(stat.size / 1e6).toFixed(1)} MB to ${MODEL_PATH}`);
+      return;
+    } catch (err) {
+      console.error(`Attempt ${attempt} failed: ${err.message}`);
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
+  }
 
-  const stat = fs.statSync(MODEL_PATH);
-  console.log(`Downloaded ${(stat.size / 1e6).toFixed(1)} MB to ${MODEL_PATH}`);
+  console.error('Model download failed after all retries. Will retry at server startup.');
 }
 
 download().catch((err) => {
   console.error('Failed to download model:', err.message);
-  process.exit(1);
+  // Do not exit(1) — allow build to continue; model will be downloaded at startup
 });
