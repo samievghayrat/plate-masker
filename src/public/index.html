@@ -712,13 +712,32 @@
       }
     }
 
-    function downloadImage(filename) {
-      const a = document.createElement('a');
-      a.href = `/api/download/${encodeURIComponent(filename)}`;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+    async function downloadImage(filename) {
+      try {
+        const res = await fetch(`/api/images/${encodeURIComponent(filename)}`);
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: 'image/jpeg' });
+
+        // Mobile: use Share API to open share sheet (Save Image option)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] });
+          return;
+        }
+
+        // Desktop: regular download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          alert('Download failed: ' + err.message);
+        }
+      }
     }
 
     async function downloadAll() {
@@ -730,8 +749,26 @@
         return;
       }
 
+      // Mobile: share all images at once
+      try {
+        const files = [];
+        for (const filename of filenames) {
+          const res = await fetch(`/api/images/${encodeURIComponent(filename)}`);
+          const blob = await res.blob();
+          files.push(new File([blob], filename, { type: 'image/jpeg' }));
+        }
+
+        if (navigator.canShare && navigator.canShare({ files })) {
+          await navigator.share({ files });
+          return;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+
+      // Desktop fallback
       for (const filename of filenames) {
-        downloadImage(filename);
+        await downloadImage(filename);
         await new Promise((r) => setTimeout(r, 300));
       }
     }
