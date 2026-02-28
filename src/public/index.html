@@ -33,9 +33,16 @@
       margin-bottom: 1.5rem;
     }
 
-    .input-group input {
+    .input-wrap {
       flex: 1;
-      padding: 0.75rem 1rem;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      padding: 0.75rem 2.2rem 0.75rem 1rem;
       font-size: 1rem;
       border: 2px solid #ddd;
       border-radius: 8px;
@@ -43,9 +50,28 @@
       transition: border-color 0.2s;
     }
 
-    .input-group input:focus {
+    .input-wrap input:focus {
       border-color: #4a90d9;
     }
+
+    .clear-btn {
+      position: absolute;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #999;
+      cursor: pointer;
+      padding: 0.2rem 0.4rem;
+      line-height: 1;
+      border-radius: 50%;
+      display: none;
+    }
+
+    .clear-btn:hover { color: #333; }
+
+    .input-wrap input:not(:placeholder-shown) ~ .clear-btn,
+    .input-wrap input.has-value ~ .clear-btn { display: block; }
 
     .input-group button {
       padding: 0.75rem 1.5rem;
@@ -300,7 +326,10 @@
     <h1>Plate Masker</h1>
 
     <div class="input-group">
-      <input type="url" id="urlInput" placeholder="Paste car listing URL..." autofocus>
+      <div class="input-wrap">
+        <input type="url" id="urlInput" placeholder="Paste car listing URL..." autofocus>
+        <button class="clear-btn" id="clearBtn" type="button" onclick="clearInput()">&times;</button>
+      </div>
       <button id="processBtn" onclick="process()">Process</button>
     </div>
 
@@ -347,6 +376,19 @@
     const resultsTitle = document.getElementById('resultsTitle');
 
     let currentFilenames = []; // track filenames from current batch
+    const clearBtn = document.getElementById('clearBtn');
+
+    function updateClearBtn() {
+      clearBtn.style.display = urlInput.value ? 'block' : 'none';
+    }
+
+    function clearInput() {
+      urlInput.value = '';
+      urlInput.focus();
+      updateClearBtn();
+    }
+
+    urlInput.addEventListener('input', updateClearBtn);
 
     urlInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') process();
@@ -412,7 +454,7 @@
             <div class="card-actions">
               <button class="edit-btn" onclick="openEditor('${img.filename}')">Edit</button>
               <button class="reprocess-btn" onclick="reprocessImage('${img.filename}', this)">Reprocess</button>
-              <a class="download-btn" href="${imgUrl}" download="${img.filename}">Download</a>
+              <button class="download-btn" onclick="downloadImage('${img.filename}')">Download</button>
               <button class="delete-btn" onclick="deleteImage('${img.filename}', this)">Delete</button>
             </div>
           </div>
@@ -648,8 +690,24 @@
       }
     }
 
-    function downloadAll() {
-      // Collect filenames from currently visible cards
+    async function downloadImage(filename) {
+      try {
+        const res = await fetch(`/api/images/${encodeURIComponent(filename)}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Download failed: ' + err.message);
+      }
+    }
+
+    async function downloadAll() {
       const badges = grid.querySelectorAll('.badge[data-filename]');
       const filenames = [...badges].map((b) => b.dataset.filename);
 
@@ -658,14 +716,8 @@
         return;
       }
 
-      // Trigger individual browser downloads for each image
       for (const filename of filenames) {
-        const a = document.createElement('a');
-        a.href = `/api/images/${encodeURIComponent(filename)}`;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        await downloadImage(filename);
       }
     }
   </script>

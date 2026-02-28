@@ -16,9 +16,9 @@ const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 // URL patterns that indicate non-car images (profile photos, icons, logos, etc.)
 const NON_CAR_URL_PATTERNS = ['/avatar/', '/profile/', '/logo/', '/icon/', '/badge/', '/favicon/', '/stamp/', '/trans.'];
 
-const MIN_WIDTH = 600;
+const MIN_WIDTH = 400;
 const MIN_HEIGHT = 300;
-const MIN_ASPECT_RATIO = 1.2;
+const MIN_ASPECT_RATIO = 1.0;
 
 function isNonCarUrl(url) {
   const lower = url.toLowerCase();
@@ -110,75 +110,139 @@ function extractImageUrls(html, baseUrl) {
   return resolved;
 }
 
-// Encar-specific acquisition: extract base image URL from HTML, then fetch all carousel images
-async function acquireEncar(url) {
-  console.log('[acquire] Encar detected — fetching page to discover image pattern...');
-  const resp = await axios.get(url, {
-    headers: { 'User-Agent': USER_AGENT },
-    timeout: 30000,
-    maxRedirects: 5,
-  });
-
-  const html = typeof resp.data === 'string' ? resp.data : resp.data.toString();
-
-  // Find a ci.encar.com car picture URL to extract the base path and car ID
-  // Pattern: ci.encar.com/carpicture/.../pic{XXXX}/{carId}_{NNN}.jpg?...
+// Try to extract encar images from HTML using ci.encar.com pattern
+async function acquireEncarFromHtml(html) {
   const ciPattern = /https?:\/\/ci\.encar\.com\/carpicture\/[^"'\s]*?\/pic(\d{4})\/(\d+)_(\d{3})\.jpg/;
   const match = html.match(ciPattern);
 
-  if (!match) {
-    console.log('[acquire] Could not find Encar image pattern, falling back to static scraper');
-    return acquireStatic(url);
-  }
+  if (!match) return null;
 
-  // Reconstruct the base URL path
-  // Find the full base path (everything before {carId}_{NNN}.jpg)
   const fullMatch = match[0];
   const carId = match[2];
   const basePath = fullMatch.substring(0, fullMatch.lastIndexOf('/') + 1);
-  // Use high-res params
   const hiResParams = '?impolicy=heightRate&rh=696&cw=1160&ch=696&cg=Center';
 
   console.log(`[acquire] Encar car ID: ${carId}, base: ${basePath}`);
 
-  // Try fetching images 001-030
   const imageNums = [];
   for (let i = 1; i <= 30; i++) {
     imageNums.push(String(i).padStart(3, '0'));
   }
 
-  const images = [];
   const downloadPromises = imageNums.map(async (num) => {
     const imgUrl = `${basePath}${carId}_${num}.jpg${hiResParams}`;
     try {
-      const img = await downloadImage(imgUrl);
-      return img;
+      return await downloadImage(imgUrl);
     } catch {
-      return null; // 404 — image doesn't exist
+      return null;
     }
   });
 
   const results = await Promise.all(downloadPromises);
-  for (const img of results) {
-    if (img) {
-      images.push(img);
-      console.log(`[acquire] Downloaded: ${img.filename}`);
+  const images = results.filter(Boolean);
+  for (const img of images) {
+    console.log(`[acquire] Downloaded: ${img.filename}`);
+  }
+
+  return images.length > 0 ? images : null;
+}
+
+// Encar-specific acquisition: supports both encar.com and fem.encar.com (SPA)
+async function acquireEncar(url) {
+  console.log('[acquire] Encar detected — fetching page to discover image pattern...');
+
+  // First try static HTML fetch (works for encar.com desktop)
+  try {
+    const resp = await axios.get(url, {
+      headers: { 'User-Agent': USER_AGENT },
+      timeout: 30000,
+      maxRedirects: 5,
+    });
+    const html = typeof resp.data === 'string' ? resp.data : resp.data.toString();
+    const images = await acquireEncarFromHtml(html);
+    if (images) {
+      const carImages = await filterCarImages(images);
+      console.log(`[acquire] Encar: ${carImages.length}/${images.length} image(s) passed car-image filter`);
+      if (carImages.length > 0) return carImages;
     }
+  } catch (err) {
+    console.log(`[acquire] Static fetch failed: ${err.message}`);
   }
 
-  if (images.length === 0) {
-    console.log('[acquire] No carousel images found, falling back to static scraper');
-    return acquireStatic(url);
+  // Fallback: use puppeteer for SPA pages (fem.encar.com)
+  console.log('[acquire] Trying browser rendering for Encar SPA...');
+  const browser = await puppeteer.launch({
+    headless: BROWSER_HEADLESS,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setUserAgent(USER_AGENT);
+    page.setDefaultNavigationTimeout(BROWSER_TIMEOUT);
+    page.setDefaultTimeout(BROWSER_TIMEOUT);
+
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    // Scroll to trigger lazy-loaded images
+    for (let i = 0; i < 15; i++) {
+      await page.evaluate(() => window.scrollBy(0, 400));
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await new Promise((r) => setTimeout(r, 2000));
+
+    // Try to extract ci.encar.com pattern from rendered HTML
+    const renderedHtml = await page.content();
+    const images = await acquireEncarFromHtml(renderedHtml);
+    if (images) {
+      const carImages = await filterCarImages(images);
+      console.log(`[acquire] Encar SPA: ${carImages.length}/${images.length} image(s) passed car-image filter`);
+      if (carImages.length > 0) return carImages;
+    }
+
+    // Last fallback: extract all large images from DOM
+    console.log('[acquire] Extracting images directly from rendered DOM...');
+    const imageUrls = await page.evaluate(() => {
+      const imgs = [...document.querySelectorAll('img')];
+      const urls = [];
+      for (const img of imgs) {
+        const src = img.src || img.dataset.src || '';
+        if (!src || src.startsWith('data:')) continue;
+        const w = img.naturalWidth || img.width || 0;
+        if (w > 300 || w === 0) urls.push(src);
+      }
+      return [...new Set(urls)];
+    });
+
+    const filteredUrls = imageUrls.filter((u) => !isNonCarUrl(u));
+    console.log(`[acquire] Found ${filteredUrls.length} candidate image(s) from DOM`);
+
+    const domImages = [];
+    for (const imgUrl of filteredUrls) {
+      try {
+        const img = await downloadImage(imgUrl);
+        domImages.push(img);
+      } catch (err) {
+        console.warn(`[acquire] Failed to download ${imgUrl}: ${err.message}`);
+      }
+    }
+
+    if (domImages.length === 0) {
+      throw new Error('No images found on Encar page');
+    }
+
+    const carImages = await filterCarImages(domImages);
+    if (carImages.length === 0) {
+      throw new Error('No car-sized images found after filtering');
+    }
+
+    console.log(`[acquire] Encar DOM: ${carImages.length}/${domImages.length} image(s) passed filter`);
+    return carImages;
+  } finally {
+    await browser.close();
+    console.log('[acquire] Browser closed');
   }
-
-  const carImages = await filterCarImages(images);
-  console.log(`[acquire] Encar: ${carImages.length}/${images.length} image(s) passed car-image filter`);
-
-  if (carImages.length === 0) {
-    throw new Error('No car-sized images found after filtering');
-  }
-
-  return carImages;
 }
 
 // Static acquisition (axios + cheerio) — works for KB차차차, etc.
