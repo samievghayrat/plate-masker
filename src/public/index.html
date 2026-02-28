@@ -435,7 +435,7 @@
       return new Promise((resolve, reject) => {
         const poll = async () => {
           try {
-            const res = await fetch(`/api/jobs/${jobId}`);
+            const res = await fetch(`/api/jobs/${jobId}?t=${Date.now()}`);
             const data = await res.json();
             if (data.status === 'done' || data.status === 'error') {
               resolve(data);
