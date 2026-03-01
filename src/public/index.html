@@ -210,6 +210,17 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
 
+    .watermark-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      user-select: none;
+    }
+
+    .watermark-toggle input { cursor: pointer; width: 16px; height: 16px; }
+
     .watermark-mode {
       display: flex;
       gap: 0.5rem;
@@ -381,8 +392,11 @@
     </div>
 
     <div class="watermark-settings">
+      <label class="watermark-toggle">
+        <input type="checkbox" id="watermarkEnabled" checked onchange="toggleWatermark()">
+        Add watermark
+      </label>
       <div class="watermark-mode" id="watermarkMode">
-        <label><input type="radio" name="wmMode" value="none" onchange="toggleWatermarkMode()"> No watermark</label>
         <label><input type="radio" name="wmMode" value="default" checked onchange="toggleWatermarkMode()"> Default</label>
         <label><input type="radio" name="wmMode" value="custom" onchange="toggleWatermarkMode()"> Custom</label>
       </div>
@@ -456,15 +470,23 @@
 
     // ========== Watermark Settings ==========
 
+    function toggleWatermark() {
+      const enabled = document.getElementById('watermarkEnabled').checked;
+      document.getElementById('watermarkMode').style.display = enabled ? 'flex' : 'none';
+      document.getElementById('watermarkFields').classList.toggle('visible',
+        enabled && document.querySelector('input[name="wmMode"]:checked').value === 'custom');
+    }
+
     function toggleWatermarkMode() {
       const mode = document.querySelector('input[name="wmMode"]:checked').value;
       document.getElementById('watermarkFields').classList.toggle('visible', mode === 'custom');
     }
 
     function getWatermarkOptions() {
-      const mode = document.querySelector('input[name="wmMode"]:checked').value;
-      if (mode === 'none') return { enabled: false };
+      const enabled = document.getElementById('watermarkEnabled').checked;
+      if (!enabled) return { enabled: false };
 
+      const mode = document.querySelector('input[name="wmMode"]:checked').value;
       if (mode === 'custom') {
         const lines = [
           document.getElementById('wmLine1').value,
