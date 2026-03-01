@@ -25,31 +25,42 @@ function generateSvgOverlay(bbox, bgColor, angle) {
   return { svg, canvasW, canvasH };
 }
 
-export async function applyWatermark(imageBuffer) {
+export async function applyWatermark(imageBuffer, options = {}) {
+  // If watermark is explicitly disabled, just return as JPEG
+  if (options.enabled === false) {
+    return sharp(imageBuffer).jpeg({ quality: JPEG_QUALITY }).toBuffer();
+  }
+
   const metadata = await sharp(imageBuffer).metadata();
   const imgW = metadata.width;
-  const imgH = metadata.height;
 
-  const line1 = 'Для заказов';
-  const line2 = '+82-10-9922-1601';
-  const line3 = 'GHAYRAT';
+  // Use custom lines if provided, otherwise defaults
+  const lines = Array.isArray(options.lines) && options.lines.length > 0
+    ? options.lines.filter((l) => l.trim() !== '')
+    : ['Для заказов', '+82-10-9922-1601', 'GHAYRAT'];
+
+  if (lines.length === 0) {
+    return sharp(imageBuffer).jpeg({ quality: JPEG_QUALITY }).toBuffer();
+  }
+
   const fontSize = Math.max(20, Math.round(imgW * 0.035));
   const padX = Math.round(fontSize * 0.6);
   const padY = Math.round(fontSize * 0.4);
   const lineGap = Math.round(fontSize * 0.3);
-  const longerText = [line1, line2, line3].reduce((a, b) => a.length > b.length ? a : b);
+  const longerText = lines.reduce((a, b) => a.length > b.length ? a : b);
   const bgW = Math.round(longerText.length * fontSize * 0.6 + padX * 2);
-  const bgH = Math.round(fontSize * 3 + lineGap * 2 + padY * 2);
+  const bgH = Math.round(fontSize * lines.length + lineGap * (lines.length - 1) + padY * 2);
 
-  const y1 = fontSize + padY - 2;
-  const y2 = fontSize * 2 + lineGap + padY - 2;
-  const y3 = fontSize * 3 + lineGap * 2 + padY - 2;
+  const escXml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const textEls = lines.map((text, i) => {
+    const y = fontSize * (i + 1) + lineGap * i + padY - 2;
+    return `<text x="${padX}" y="${y}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white">${escXml(text)}</text>`;
+  }).join('\n  ');
 
   const svg = `<svg width="${bgW}" height="${bgH}" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="${bgW}" height="${bgH}" fill="rgba(0,0,0,0.5)" rx="6" ry="6"/>
-  <text x="${padX}" y="${y1}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white">${line1}</text>
-  <text x="${padX}" y="${y2}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="white">${line2}</text>
-  <text x="${padX}" y="${y3}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="white">${line3}</text>
+  ${textEls}
 </svg>`;
 
   return sharp(imageBuffer)

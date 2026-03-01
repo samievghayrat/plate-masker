@@ -56,7 +56,7 @@ export async function processUrl(url, options = {}) {
     }
 
     // Step 3.5: Apply watermark
-    outputBuffer = await applyWatermark(outputBuffer);
+    outputBuffer = await applyWatermark(outputBuffer, options.watermark);
 
     // Step 4: Save
     fs.writeFileSync(outputPath, outputBuffer);

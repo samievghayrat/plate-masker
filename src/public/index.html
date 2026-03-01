@@ -199,6 +199,62 @@
 
     .download-all-btn:hover { background: #1e8449; }
 
+    /* Watermark settings */
+    .watermark-settings {
+      margin-bottom: 1.5rem;
+      background: #fff;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    .watermark-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      user-select: none;
+    }
+
+    .watermark-toggle input { cursor: pointer; width: 16px; height: 16px; }
+
+    .watermark-mode {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .watermark-mode label {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .watermark-mode input { cursor: pointer; }
+
+    .watermark-custom-fields {
+      display: none;
+      margin-top: 0.5rem;
+    }
+
+    .watermark-custom-fields.visible { display: block; }
+
+    .watermark-custom-fields input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      outline: none;
+      margin-bottom: 0.4rem;
+    }
+
+    .watermark-custom-fields input:focus { border-color: #4a90d9; }
+
     .delete-btn {
       font-size: 0.85rem;
       padding: 0.35rem 0.7rem;
@@ -333,6 +389,22 @@
       <button id="processBtn" onclick="process()">Process</button>
     </div>
 
+    <div class="watermark-settings">
+      <label class="watermark-toggle">
+        <input type="checkbox" id="watermarkEnabled" checked onchange="toggleWatermark()">
+        Add watermark
+      </label>
+      <div class="watermark-mode" id="watermarkMode">
+        <label><input type="radio" name="wmMode" value="default" checked onchange="toggleWatermarkMode()"> Default</label>
+        <label><input type="radio" name="wmMode" value="custom" onchange="toggleWatermarkMode()"> Custom</label>
+      </div>
+      <div class="watermark-custom-fields" id="watermarkFields">
+        <input type="text" id="wmLine1" placeholder="Line 1 (e.g. Your Name)">
+        <input type="text" id="wmLine2" placeholder="Line 2 (e.g. Phone Number)">
+        <input type="text" id="wmLine3" placeholder="Line 3 (e.g. Company)">
+      </div>
+    </div>
+
     <div class="error-msg" id="error"></div>
 
     <div class="status" id="status">
@@ -394,6 +466,37 @@
       if (e.key === 'Enter') process();
     });
 
+    // ========== Watermark Settings ==========
+
+    function toggleWatermark() {
+      const enabled = document.getElementById('watermarkEnabled').checked;
+      document.getElementById('watermarkMode').style.display = enabled ? 'flex' : 'none';
+      document.getElementById('watermarkFields').classList.toggle('visible',
+        enabled && document.querySelector('input[name="wmMode"]:checked').value === 'custom');
+    }
+
+    function toggleWatermarkMode() {
+      const mode = document.querySelector('input[name="wmMode"]:checked').value;
+      document.getElementById('watermarkFields').classList.toggle('visible', mode === 'custom');
+    }
+
+    function getWatermarkOptions() {
+      const enabled = document.getElementById('watermarkEnabled').checked;
+      if (!enabled) return { enabled: false };
+
+      const mode = document.querySelector('input[name="wmMode"]:checked').value;
+      if (mode === 'custom') {
+        const lines = [
+          document.getElementById('wmLine1').value,
+          document.getElementById('wmLine2').value,
+          document.getElementById('wmLine3').value,
+        ].filter((l) => l.trim() !== '');
+        return { enabled: true, lines: lines.length > 0 ? lines : undefined };
+      }
+
+      return { enabled: true };
+    }
+
     async function process() {
       const url = urlInput.value.trim();
       if (!url) return;
@@ -410,7 +513,7 @@
         const startRes = await fetch('/api/process', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify({ url, watermark: getWatermarkOptions() }),
         });
 
         const startData = await startRes.json();
@@ -650,7 +753,7 @@
         const res = await fetch('/api/manual-overlay', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: editorFilename, rectangles }),
+          body: JSON.stringify({ filename: editorFilename, rectangles, watermark: getWatermarkOptions() }),
         });
 
         const data = await res.json();
@@ -674,7 +777,11 @@
       btn.textContent = 'Processing...';
 
       try {
-        const res = await fetch(`/api/reprocess/${encodeURIComponent(filename)}`, { method: 'POST' });
+        const res = await fetch(`/api/reprocess/${encodeURIComponent(filename)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ watermark: getWatermarkOptions() }),
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Reprocess failed');
 
@@ -766,10 +873,30 @@
         if (err.name === 'AbortError') return;
       }
 
-      // Desktop fallback
-      for (const filename of filenames) {
-        await downloadImage(filename);
-        await new Promise((r) => setTimeout(r, 300));
+      // Desktop: download as ZIP via /api/download-all
+      try {
+        const res = await fetch('/api/download-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filenames }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Download failed');
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'plate-masker-output.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Download failed: ' + err.message);
       }
     }
   </script>

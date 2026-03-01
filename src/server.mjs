@@ -49,7 +49,7 @@ let jobCounter = 0;
 
 // Start processing a URL (returns immediately with job ID)
 app.post('/api/process', (req, res) => {
-  const { url } = req.body;
+  const { url, watermark } = req.body;
 
   if (!url || !isValidUrl(url)) {
     return res.status(400).json({ error: 'Invalid URL. Please provide a valid HTTP/HTTPS URL.' });
@@ -62,7 +62,7 @@ app.post('/api/process', (req, res) => {
   res.json({ jobId });
 
   // Process in background
-  processUrl(url).then((results) => {
+  processUrl(url, { watermark }).then((results) => {
     const response = results.map((r) => ({
       filename: r.filename,
       platesFound: r.platesFound,
@@ -131,7 +131,7 @@ app.delete('/api/images/:filename', (req, res) => {
 
 // Manual overlay: draw white rectangles on the original image
 app.post('/api/manual-overlay', async (req, res) => {
-  const { filename, rectangles } = req.body;
+  const { filename, rectangles, watermark } = req.body;
 
   if (!filename || !Array.isArray(rectangles) || rectangles.length === 0) {
     return res.status(400).json({ error: 'filename and non-empty rectangles array required' });
@@ -155,7 +155,7 @@ app.post('/api/manual-overlay', async (req, res) => {
     const buffer = fs.readFileSync(sourcePath);
     const plates = rectangles.map((r) => ({ x0: r.x0, y0: r.y0, x1: r.x1, y1: r.y1, angle: 0 }));
     let result = await applyOverlays(buffer, plates);
-    result = await applyWatermark(result);
+    result = await applyWatermark(result, watermark);
     fs.writeFileSync(processedPath, result);
     console.log(`[server] Manual overlay applied to ${safeName} (${rectangles.length} rect(s))`);
     res.json({ filename: safeName, rectsApplied: rectangles.length });
@@ -167,6 +167,7 @@ app.post('/api/manual-overlay', async (req, res) => {
 
 // Reprocess a single image: re-detect plates on the original and re-apply overlays
 app.post('/api/reprocess/:filename', async (req, res) => {
+  const { watermark } = req.body || {};
   const safeName = path.basename(req.params.filename);
   const originalFilename = safeName.replace(/\.jpg$/, '_original.jpg');
   const originalPath = path.join(OUTPUT_DIR, originalFilename);
@@ -186,7 +187,7 @@ app.post('/api/reprocess/:filename', async (req, res) => {
     } else {
       outputBuffer = await applyOverlays(buffer, plates);
     }
-    outputBuffer = await applyWatermark(outputBuffer);
+    outputBuffer = await applyWatermark(outputBuffer, watermark);
 
     fs.writeFileSync(processedPath, outputBuffer);
     console.log(`[server] Reprocessed ${safeName}: ${plates.length} plate(s) found`);
