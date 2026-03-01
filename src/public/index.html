@@ -858,25 +858,12 @@
         return;
       }
 
-      // Mobile: share all images at once
-      try {
-        const files = [];
-        for (const filename of filenames) {
-          const res = await fetch(`/api/images/${encodeURIComponent(filename)}`);
-          const blob = await res.blob();
-          files.push(new File([blob], filename, { type: 'image/jpeg' }));
-        }
+      const btn = document.querySelector('.download-all-btn');
+      btn.disabled = true;
+      btn.textContent = 'Downloading...';
 
-        if (navigator.canShare && navigator.canShare({ files })) {
-          await navigator.share({ files });
-          return;
-        }
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
-
-      // Desktop: download as ZIP via /api/download-all
       try {
+        // Get ZIP from server (single fast request)
         const res = await fetch('/api/download-all', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -889,6 +876,19 @@
         }
 
         const blob = await res.blob();
+
+        // Mobile: share ZIP via Share API
+        try {
+          const zipFile = new File([blob], 'plate-masker-output.zip', { type: 'application/zip' });
+          if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+            await navigator.share({ files: [zipFile] });
+            return;
+          }
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
+
+        // Desktop / fallback: trigger download
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -899,6 +899,9 @@
         URL.revokeObjectURL(url);
       } catch (err) {
         alert('Download failed: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Download All';
       }
     }
   </script>
