@@ -268,6 +268,7 @@ function renderGallery(images) {
   elements.photoGrid.innerHTML = '';
   state.selected = new Set();
   elements.selectAll.checked = false;
+  elements.selectAll.indeterminate = false;
   const masked = images.filter((image) => image.platesFound > 0).length;
   const review = images.filter((image) => image.maskRequested && image.platesFound === 0).length;
   elements.gallerySummary.textContent = images[0]?.maskRequested
@@ -293,6 +294,7 @@ function createPhotoCard(image) {
   selectLabel.className = 'photo-select';
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
+  checkbox.autocomplete = 'off';
   checkbox.checked = false;
   checkbox.setAttribute('aria-label', `Select ${image.filename}`);
   checkbox.addEventListener('change', () => {
