@@ -26,8 +26,7 @@ function isNonCarUrl(url) {
 }
 
 async function filterCarImages(images) {
-  const filtered = [];
-  for (const img of images) {
+  const checked = await Promise.all(images.map(async (img) => {
     try {
       const metadata = await sharp(img.buffer).metadata();
       const w = metadata.width || 0;
@@ -36,15 +35,16 @@ async function filterCarImages(images) {
 
       if (w < MIN_WIDTH || h < MIN_HEIGHT || aspect < MIN_ASPECT_RATIO) {
         console.log(`[acquire] Filtered out ${img.filename} (${w}x${h}, aspect ${aspect.toFixed(2)})`);
-        continue;
+        return null;
       }
-      filtered.push(img);
+      return img;
     } catch {
       // If sharp can't read it, skip it
       console.warn(`[acquire] Filtered out ${img.filename} (unreadable image)`);
+      return null;
     }
-  }
-  return filtered;
+  }));
+  return checked.filter(Boolean);
 }
 
 async function classifyUrl(url) {
@@ -74,6 +74,43 @@ async function downloadImage(url) {
   const buffer = Buffer.from(resp.data);
   const filename = sanitizeFilename(url);
   return { buffer, filename, sourceUrl: url };
+}
+
+async function acquireStructuredListing(listing, onProgress) {
+  const urls = listing.imageUrls || [];
+  const sourceName = listing.source === 'kbchachacha' ? 'KB Chachacha' : 'Encar';
+  console.log(`[acquire] Downloading ${urls.length} ${sourceName} photo(s) from structured listing...`);
+  let completed = 0;
+
+  // Keep a modest concurrency limit: much faster than sequential downloads without
+  // overwhelming the source CDN on listings with 20-30 photos.
+  const images = new Array(urls.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(8, urls.length) }, async () => {
+    while (nextIndex < urls.length) {
+      const index = nextIndex++;
+      try {
+        images[index] = await downloadImage(urls[index]);
+      } catch (error) {
+        console.warn(`[acquire] Failed to download ${urls[index]}: ${error.message}`);
+      } finally {
+        completed++;
+        onProgress?.({
+          stage: 'download',
+          current: completed,
+          total: urls.length,
+          message: `Downloading photos ${completed}/${urls.length}`,
+        });
+      }
+    }
+  });
+
+  await Promise.all(workers);
+  const downloaded = images.filter(Boolean);
+  if (downloaded.length === 0) throw new Error(`Could not download any ${sourceName} photos.`);
+  const filtered = await filterCarImages(downloaded);
+  console.log(`[acquire] ${sourceName}: ${filtered.length}/${downloaded.length} photo(s) ready`);
+  return filtered;
 }
 
 function extractImageUrls(html, baseUrl) {
@@ -245,7 +282,7 @@ async function acquireEncar(url) {
   }
 }
 
-// Static acquisition (axios + cheerio) — works for KB차차차, etc.
+// Static acquisition (axios + cheerio) for other public pages and direct images.
 async function acquireStatic(url) {
   console.log(`[acquire] Classifying URL: ${url}`);
   const type = await classifyUrl(url);
@@ -436,6 +473,10 @@ async function acquireKcarAuction(url, credentials) {
 
 // Router: pick acquisition strategy based on URL
 export async function acquireImages(url, options = {}) {
+  if (options.listing?.imageUrls?.length) {
+    return acquireStructuredListing(options.listing, options.onProgress);
+  }
+
   if (url.includes('kcarauction.com')) {
     return acquireKcarAuction(url, {
       userId: options.kcarUser,
@@ -443,10 +484,10 @@ export async function acquireImages(url, options = {}) {
     });
   }
 
-  if (url.includes('encar.com')) {
+  if (/encar\.com/i.test(url)) {
     return acquireEncar(url);
   }
 
-  // Default: static acquisition (KB차차차, direct image URLs, etc.)
+  // Default: static acquisition for direct image URLs and other public pages.
   return acquireStatic(url);
 }

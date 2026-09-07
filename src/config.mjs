@@ -1,4 +1,5 @@
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -6,7 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Overlay settings
 export const OVERLAY_BG_COLOR = '#FFFFFF';
 export const JPEG_QUALITY = 90;
-export const OUTPUT_DIR = 'output';
+export const OUTPUT_DIR = process.env.VERCEL
+  ? path.join(os.tmpdir(), 'plate-masker-output')
+  : 'output';
 
 // Padding around detected plate bbox (fraction of bbox size)
 export const BBOX_PADDING = 0.35;

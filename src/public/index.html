@@ -1,909 +1,178 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plate Masker</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      color: #222;
-      min-height: 100vh;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 2rem 1rem;
-    }
-
-    h1 {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    /* Input section */
-    .input-group {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .input-wrap {
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .input-wrap input {
-      width: 100%;
-      padding: 0.75rem 2.2rem 0.75rem 1rem;
-      font-size: 1rem;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .input-wrap input:focus {
-      border-color: #4a90d9;
-    }
-
-    .clear-btn {
-      position: absolute;
-      right: 0.5rem;
-      background: #e74c3c;
-      border: none;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #fff;
-      cursor: pointer;
-      width: 22px;
-      height: 22px;
-      line-height: 22px;
-      text-align: center;
-      padding: 0;
-      border-radius: 50%;
-      display: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .clear-btn:hover { background: #c0392b; }
-
-    .input-group button {
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      font-weight: 600;
-      background: #4a90d9;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background 0.2s;
-    }
-
-    .input-group button:hover { background: #357abd; }
-    .input-group button:disabled { background: #aaa; cursor: not-allowed; }
-
-    /* Status */
-    .status {
-      text-align: center;
-      padding: 2rem;
-      display: none;
-    }
-
-    .status.visible { display: block; }
-
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 4px solid #ddd;
-      border-top-color: #4a90d9;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 1rem;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .error-msg {
-      color: #c0392b;
-      background: #fdecea;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    .error-msg.visible { display: block; }
-
-    /* Results grid */
-    .results-header {
-      display: none;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .results-header.visible { display: flex; }
-
-    .results-header h2 { font-size: 1.1rem; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 1rem;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: box-shadow 0.2s;
-    }
-
-    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-
-    .card img {
-      width: 100%;
-      display: block;
-      cursor: pointer;
-    }
-
-    .card-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.6rem 0.75rem;
-    }
-
-    .badge {
-      font-size: 0.8rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-
-    .badge.masked { background: #d4edda; color: #155724; }
-    .badge.none   { background: #fff3cd; color: #856404; }
-
-    .download-btn {
-      font-size: 0.85rem;
-      padding: 0.35rem 0.7rem;
-      background: #4a90d9;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    .download-btn:hover { background: #357abd; }
-
-    .download-all-btn {
-      font-size: 0.9rem;
-      padding: 0.5rem 1rem;
-      background: #27ae60;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .download-all-btn:hover { background: #1e8449; }
-
-    /* Watermark settings */
-    .watermark-settings {
-      margin-bottom: 1.5rem;
-      background: #fff;
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
-
-    .watermark-toggle {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      font-size: 0.95rem;
-      user-select: none;
-    }
-
-    .watermark-toggle input { cursor: pointer; width: 16px; height: 16px; }
-
-    .watermark-mode {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-      align-items: center;
-      font-size: 0.9rem;
-    }
-
-    .watermark-mode label {
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-    }
-
-    .watermark-mode input { cursor: pointer; }
-
-    .watermark-custom-fields {
-      display: none;
-      margin-top: 0.5rem;
-    }
-
-    .watermark-custom-fields.visible { display: block; }
-
-    .watermark-custom-fields input {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.9rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      outline: none;
-      margin-bottom: 0.4rem;
-    }
-
-    .watermark-custom-fields input:focus { border-color: #4a90d9; }
-
-    .delete-btn {
-      font-size: 0.85rem;
-      padding: 0.35rem 0.7rem;
-      background: #e74c3c;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .delete-btn:hover { background: #c0392b; }
-
-    .edit-btn {
-      font-size: 0.85rem;
-      padding: 0.35rem 0.7rem;
-      background: #8e44ad;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .edit-btn:hover { background: #71368a; }
-
-    .reprocess-btn {
-      font-size: 0.85rem;
-      padding: 0.35rem 0.7rem;
-      background: #e67e22;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .reprocess-btn:hover { background: #d35400; }
-
-    .card-actions {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-    }
-
-    /* Modal overlay */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .modal-overlay.visible { display: flex; }
-
-    .modal {
-      background: #fff;
-      border-radius: 12px;
-      max-width: 90vw;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #eee;
-    }
-
-    .modal-header h3 { font-size: 1rem; }
-
-    .modal-body {
-      flex: 1;
-      overflow: auto;
-      display: flex;
-      justify-content: center;
-      padding: 0.5rem;
-      background: #f0f0f0;
-    }
-
-    .modal-body canvas {
-      cursor: crosshair;
-      max-width: 100%;
-    }
-
-    .modal-footer {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: flex-end;
-      padding: 0.75rem 1rem;
-      border-top: 1px solid #eee;
-    }
-
-    .modal-footer button {
-      padding: 0.5rem 1rem;
-      font-size: 0.9rem;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .btn-undo { background: #95a5a6; color: #fff; }
-    .btn-undo:hover { background: #7f8c8d; }
-    .btn-clear { background: #e74c3c; color: #fff; }
-    .btn-clear:hover { background: #c0392b; }
-    .btn-cancel { background: #bdc3c7; color: #333; }
-    .btn-cancel:hover { background: #a6acaf; }
-    .btn-apply { background: #27ae60; color: #fff; }
-    .btn-apply:hover { background: #1e8449; }
-
-    @media (max-width: 500px) {
-      .grid { grid-template-columns: 1fr; }
-      .input-group { flex-direction: column; }
-      .input-group button { width: 100%; }
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1b2a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Korea Car Post Studio</title>
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Plate Masker</h1>
-
-    <div class="input-group">
-      <div class="input-wrap">
-        <input type="url" id="urlInput" placeholder="Paste car listing URL..." autofocus>
-        <button class="clear-btn" id="clearBtn" type="button" onclick="clearInput()">&times;</button>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-mark" aria-hidden="true">G</div>
+      <div>
+        <p class="eyebrow">GHAYRAT · KOREA</p>
+        <h1>Korea Car Post Studio</h1>
       </div>
-      <button id="processBtn" onclick="process()">Process</button>
+      <span class="privacy-chip">Private tool</span>
     </div>
+  </header>
 
-    <div class="watermark-settings">
-      <label class="watermark-toggle">
-        <input type="checkbox" id="watermarkEnabled" checked onchange="toggleWatermark()">
-        Add watermark
-      </label>
-      <div class="watermark-mode" id="watermarkMode">
-        <label><input type="radio" name="wmMode" value="default" checked onchange="toggleWatermarkMode()"> Default</label>
-        <label><input type="radio" name="wmMode" value="custom" onchange="toggleWatermarkMode()"> Custom</label>
-      </div>
-      <div class="watermark-custom-fields" id="watermarkFields">
-        <input type="text" id="wmLine1" placeholder="Line 1 (e.g. Your Name)">
-        <input type="text" id="wmLine2" placeholder="Line 2 (e.g. Phone Number)">
-        <input type="text" id="wmLine3" placeholder="Line 3 (e.g. Company)">
-      </div>
-    </div>
-
-    <div class="error-msg" id="error"></div>
-
-    <div class="status" id="status">
-      <div class="spinner"></div>
-      <p>Processing images... this may take a minute.</p>
-    </div>
-
-    <div class="results-header" id="resultsHeader">
-      <h2 id="resultsTitle"></h2>
-      <button class="download-all-btn" onclick="downloadAll()">Download All</button>
-    </div>
-
-    <div class="grid" id="grid"></div>
-  </div>
-
-  <!-- Manual Plate Cover Editor Modal -->
-  <div class="modal-overlay" id="editorModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="editorTitle">Draw rectangles over plates</h3>
-      </div>
-      <div class="modal-body">
-        <canvas id="editorCanvas"></canvas>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-undo" onclick="editorUndo()">Undo</button>
-        <button class="btn-clear" onclick="editorClearAll()">Clear All</button>
-        <button class="btn-cancel" onclick="editorClose()">Cancel</button>
-        <button class="btn-apply" id="editorApplyBtn" onclick="editorApply()">Apply</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const urlInput = document.getElementById('urlInput');
-    const processBtn = document.getElementById('processBtn');
-    const statusEl = document.getElementById('status');
-    const errorEl = document.getElementById('error');
-    const grid = document.getElementById('grid');
-    const resultsHeader = document.getElementById('resultsHeader');
-    const resultsTitle = document.getElementById('resultsTitle');
-
-    let currentFilenames = []; // track filenames from current batch
-    const clearBtn = document.getElementById('clearBtn');
-
-    function updateClearBtn() {
-      clearBtn.style.display = urlInput.value ? 'block' : 'none';
-    }
-
-    function clearInput() {
-      urlInput.value = '';
-      urlInput.focus();
-      updateClearBtn();
-    }
-
-    urlInput.addEventListener('input', updateClearBtn);
-
-    urlInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') process();
-    });
-
-    // ========== Watermark Settings ==========
-
-    function toggleWatermark() {
-      const enabled = document.getElementById('watermarkEnabled').checked;
-      document.getElementById('watermarkMode').style.display = enabled ? 'flex' : 'none';
-      document.getElementById('watermarkFields').classList.toggle('visible',
-        enabled && document.querySelector('input[name="wmMode"]:checked').value === 'custom');
-    }
-
-    function toggleWatermarkMode() {
-      const mode = document.querySelector('input[name="wmMode"]:checked').value;
-      document.getElementById('watermarkFields').classList.toggle('visible', mode === 'custom');
-    }
-
-    function getWatermarkOptions() {
-      const enabled = document.getElementById('watermarkEnabled').checked;
-      if (!enabled) return { enabled: false };
-
-      const mode = document.querySelector('input[name="wmMode"]:checked').value;
-      if (mode === 'custom') {
-        const lines = [
-          document.getElementById('wmLine1').value,
-          document.getElementById('wmLine2').value,
-          document.getElementById('wmLine3').value,
-        ].filter((l) => l.trim() !== '');
-        return { enabled: true, lines: lines.length > 0 ? lines : undefined };
-      }
-
-      return { enabled: true };
-    }
-
-    async function process() {
-      const url = urlInput.value.trim();
-      if (!url) return;
-
-      // Reset UI
-      errorEl.classList.remove('visible');
-      grid.innerHTML = '';
-      resultsHeader.classList.remove('visible');
-      statusEl.classList.add('visible');
-      processBtn.disabled = true;
-
-      try {
-        // Start the job (returns immediately)
-        const startRes = await fetch('/api/process', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, watermark: getWatermarkOptions() }),
-        });
-
-        const startData = await startRes.json();
-        if (startData.error) throw new Error(startData.error);
-
-        // Poll for results every 3 seconds
-        const jobId = startData.jobId;
-        const data = await pollJob(jobId);
-
-        if (data.error) throw new Error(data.error);
-        renderResults(data.results);
-      } catch (err) {
-        errorEl.textContent = err.message;
-        errorEl.classList.add('visible');
-      } finally {
-        statusEl.classList.remove('visible');
-        processBtn.disabled = false;
-      }
-    }
-
-    function pollJob(jobId) {
-      return new Promise((resolve, reject) => {
-        const poll = async () => {
-          try {
-            const res = await fetch(`/api/jobs/${jobId}?t=${Date.now()}`);
-            const data = await res.json();
-            if (data.status === 'done' || data.status === 'error') {
-              resolve(data);
-            } else {
-              setTimeout(poll, 3000);
-            }
-          } catch {
-            setTimeout(poll, 3000);
-          }
-        };
-        poll();
-      });
-    }
-
-    function renderResults(images) {
-      grid.innerHTML = '';
-      currentFilenames = images.map((i) => i.filename);
-
-      const masked = images.filter((i) => i.platesFound > 0).length;
-      resultsTitle.textContent = `${images.length} image(s) — ${masked} with plates masked`;
-      resultsHeader.classList.add('visible');
-
-      for (const img of images) {
-        const imgUrl = `/api/images/${encodeURIComponent(img.filename)}`;
-
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const badgeClass = img.platesFound > 0 ? 'masked' : 'none';
-        const badgeText = img.platesFound > 0
-          ? `${img.platesFound} plate(s) masked`
-          : 'no plates found';
-
-        card.innerHTML = `
-          <img src="${imgUrl}" alt="${img.filename}" onclick="window.open('${imgUrl}', '_blank')">
-          <div class="card-footer">
-            <span class="badge ${badgeClass}" data-filename="${img.filename}">${badgeText}</span>
-            <div class="card-actions">
-              <button class="edit-btn" onclick="openEditor('${img.filename}')">Edit</button>
-              <button class="reprocess-btn" onclick="reprocessImage('${img.filename}', this)">Reprocess</button>
-              <button class="download-btn" onclick="downloadImage('${img.filename}')">Download</button>
-              <button class="delete-btn" onclick="deleteImage('${img.filename}', this)">Delete</button>
-            </div>
+  <main class="container">
+    <section class="start-card panel">
+      <div class="section-heading">
+        <div>
+          <span class="step-number">1</span>
+          <div>
+            <h2>Paste an Encar or KB link</h2>
+            <p>Get the photos and prepare a Russian sales post in one step.</p>
           </div>
-        `;
+        </div>
+      </div>
 
-        grid.appendChild(card);
-      }
-    }
-    async function deleteImage(filename, btn) {
+      <div class="url-row">
+        <div class="url-field">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1.5 1.5 0 0 0 2.1 0l3.8-3.8a3 3 0 0 0-4.2-4.2l-2.2 2.2M13.4 10.6a1.5 1.5 0 0 0-2.1 0l-3.8 3.8a3 3 0 0 0 4.2 4.2l2.2-2.2"/></svg>
+          <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="Encar or KB차차차 vehicle link" aria-label="Encar or KB Chachacha listing URL">
+          <button id="clearBtn" class="icon-btn clear-input" type="button" aria-label="Clear link">×</button>
+        </div>
+        <button id="pasteBtn" class="btn btn-secondary" type="button">Paste</button>
+      </div>
 
-      try {
-        const res = await fetch(`/api/images/${encodeURIComponent(filename)}`, { method: 'DELETE' });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Delete failed');
-        }
+      <div class="task-options" aria-label="Processing options">
+        <label class="option-card selected" id="maskOptionCard">
+          <span class="option-icon privacy">▰</span>
+          <span class="option-copy"><strong>Mask plates</strong><small>Recommended for privacy</small></span>
+          <span class="switch"><input id="maskPlatesToggle" type="checkbox" checked><i></i></span>
+        </label>
+        <label class="option-card selected" id="textOptionCard">
+          <span class="option-icon text">Aa</span>
+          <span class="option-copy"><strong>Generate post text</strong><small>Uses your Russian format</small></span>
+          <span class="switch"><input id="generateTextToggle" type="checkbox" checked><i></i></span>
+        </label>
+        <label class="option-card selected" id="watermarkOptionCard">
+          <span class="option-icon watermark">G</span>
+          <span class="option-copy"><strong>Add watermark</strong><small>Protect your photos</small></span>
+          <span class="switch"><input id="watermarkEnabled" type="checkbox" checked><i></i></span>
+        </label>
+      </div>
 
-        const card = btn.closest('.card');
-        card.remove();
+      <details id="watermarkSettings" class="advanced-settings">
+        <summary>Watermark settings</summary>
+        <div class="watermark-form">
+          <label><span>Line 1</span><input id="wmLine1" value="Для заказов" maxlength="50"></label>
+          <label><span>Line 2</span><input id="wmLine2" value="+82-10-9922-1601" maxlength="50"></label>
+          <label><span>Line 3</span><input id="wmLine3" value="GHAYRAT" maxlength="50"></label>
+        </div>
+      </details>
 
-        // Update the count in the header
-        const remaining = grid.querySelectorAll('.card').length;
-        if (remaining === 0) {
-          resultsHeader.classList.remove('visible');
-        } else {
-          const masked = grid.querySelectorAll('.badge.masked').length;
-          resultsTitle.textContent = `${remaining} image(s) — ${masked} with plates masked`;
-        }
-      } catch (err) {
-        alert('Failed to delete: ' + err.message);
-      }
-    }
+      <button id="processBtn" class="btn btn-primary btn-large" type="button">
+        <span>Prepare photos &amp; post</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+      <p class="privacy-note"><span>●</span> The plate number is never added to the generated post. VIN is off by default.</p>
+    </section>
 
-    // ========== Manual Plate Cover Editor ==========
+    <div id="errorBox" class="message error-message" role="alert" hidden></div>
 
-    const editorModal = document.getElementById('editorModal');
-    const editorCanvas = document.getElementById('editorCanvas');
-    const editorApplyBtn = document.getElementById('editorApplyBtn');
-    const ctx = editorCanvas.getContext('2d');
+    <section id="progressPanel" class="progress-panel panel" hidden aria-live="polite">
+      <div class="progress-top">
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <strong id="progressTitle">Reading the car</strong>
+          <p id="progressMessage">Connecting to the listing…</p>
+        </div>
+        <span id="progressCount"></span>
+      </div>
+      <div class="progress-track"><span id="progressBar"></span></div>
+    </section>
 
-    let editorFilename = '';
-    let editorImage = null;   // HTMLImageElement of the original
-    let editorRects = [];     // committed rectangles [{x0,y0,x1,y1}] in canvas coords
-    let drawStart = null;     // {x,y} while drawing
+    <div id="workspace" hidden>
+      <section id="carSummary" class="car-summary panel" hidden>
+        <div class="car-heading">
+          <div>
+            <p class="eyebrow accent">CAR FOUND</p>
+            <h2 id="carTitle"></h2>
+            <p id="carSubtitle"></p>
+          </div>
+          <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noopener">Open source ↗</a>
+        </div>
+        <div id="specGrid" class="spec-grid"></div>
+      </section>
 
-    function openEditor(filename) {
-      editorFilename = filename;
-      editorRects = [];
-      drawStart = null;
+      <section id="postPanel" class="post-panel panel" hidden>
+        <div class="section-heading compact">
+          <div>
+            <span class="step-number">2</span>
+            <div><h2>Sales post</h2><p>Edit anything before you copy or share it.</p></div>
+          </div>
+          <span class="ready-chip">Generated</span>
+        </div>
 
-      // Load the original image (fall back to processed)
-      const origName = filename.replace(/\.jpg$/, '_original.jpg');
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        editorImage = img;
-        // Size canvas to fit: max 800px wide, proportional height
-        const maxW = Math.min(800, window.innerWidth - 80);
-        const scale = maxW / img.naturalWidth;
-        editorCanvas.width = Math.round(img.naturalWidth * scale);
-        editorCanvas.height = Math.round(img.naturalHeight * scale);
-        editorDraw();
-        editorModal.classList.add('visible');
-      };
-      img.onerror = () => {
-        // Fall back to processed image
-        img.onerror = () => alert('Could not load image');
-        img.src = `/api/images/${encodeURIComponent(filename)}?t=${Date.now()}`;
-      };
-      img.src = `/api/images/${encodeURIComponent(origName)}?t=${Date.now()}`;
-    }
+        <div class="post-settings">
+          <label>
+            <span>Price format</span>
+            <select id="priceMode">
+              <option value="korea">Price in Korea</option>
+              <option value="turnkey">Turnkey to Vladivostok</option>
+            </select>
+          </label>
+          <label id="turnkeyPriceField" hidden>
+            <span>Turnkey price (₽)</span>
+            <input id="turnkeyPrice" inputmode="numeric" placeholder="e.g. 3,500,000">
+          </label>
+          <label class="privacy-toggle">
+            <span class="switch"><input id="includeVin" type="checkbox"><i></i></span>
+            <span><strong>Include VIN</strong><small>Off for privacy</small></span>
+          </label>
+        </div>
 
-    function editorDraw() {
-      if (!editorImage) return;
-      ctx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
-      ctx.drawImage(editorImage, 0, 0, editorCanvas.width, editorCanvas.height);
+        <textarea id="postText" spellcheck="false" aria-label="Generated car post"></textarea>
+        <div class="action-row">
+          <button id="copyPostBtn" class="btn btn-primary" type="button">Copy text</button>
+          <button id="sharePostBtn" class="btn btn-secondary" type="button">Share text</button>
+          <button id="regenerateBtn" class="btn btn-ghost" type="button">Reset text</button>
+        </div>
+      </section>
 
-      // Draw committed rectangles
-      for (const r of editorRects) {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
-      }
-    }
+      <section id="galleryPanel" class="gallery-panel panel" hidden>
+        <div class="section-heading compact gallery-heading">
+          <div>
+            <span class="step-number">3</span>
+            <div><h2>Your photos</h2><p id="gallerySummary"></p></div>
+          </div>
+          <label class="select-all"><input id="selectAll" type="checkbox" checked> Select all</label>
+        </div>
 
-    function getCanvasPos(e) {
-      const rect = editorCanvas.getBoundingClientRect();
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
-    }
+        <div class="gallery-actions">
+          <button id="saveSelectedBtn" class="btn btn-success" type="button">Save selected to gallery</button>
+          <button id="shareBundleBtn" class="btn btn-primary" type="button">Share photos + text</button>
+          <button id="zipBtn" class="btn btn-secondary" type="button">Download ZIP</button>
+        </div>
 
-    editorCanvas.addEventListener('mousedown', (e) => {
-      drawStart = getCanvasPos(e);
-    });
+        <div id="photoGrid" class="photo-grid"></div>
+      </section>
+    </div>
+  </main>
 
-    editorCanvas.addEventListener('mousemove', (e) => {
-      if (!drawStart) return;
-      const pos = getCanvasPos(e);
-      editorDraw();
-      // Preview rectangle: red dashed outline
-      ctx.setLineDash([6, 3]);
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(drawStart.x, drawStart.y, pos.x - drawStart.x, pos.y - drawStart.y);
-      ctx.setLineDash([]);
-    });
+  <div id="editorModal" class="modal-backdrop" hidden>
+    <section class="editor-modal" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+      <header>
+        <div><h2 id="editorTitle">Cover a missed plate</h2><p>Drag a rectangle over the plate.</p></div>
+        <button id="editorCloseBtn" class="icon-btn" type="button" aria-label="Close editor">×</button>
+      </header>
+      <div class="canvas-wrap"><canvas id="editorCanvas"></canvas></div>
+      <footer>
+        <button id="editorUndoBtn" class="btn btn-ghost" type="button">Undo</button>
+        <button id="editorClearBtn" class="btn btn-ghost danger-text" type="button">Clear</button>
+        <button id="editorApplyBtn" class="btn btn-success" type="button">Apply mask</button>
+      </footer>
+    </section>
+  </div>
 
-    editorCanvas.addEventListener('mouseup', (e) => {
-      if (!drawStart) return;
-      const pos = getCanvasPos(e);
-      const x0 = Math.min(drawStart.x, pos.x);
-      const y0 = Math.min(drawStart.y, pos.y);
-      const x1 = Math.max(drawStart.x, pos.x);
-      const y1 = Math.max(drawStart.y, pos.y);
-      // Only commit if rectangle is at least 5px in both dimensions
-      if (x1 - x0 > 5 && y1 - y0 > 5) {
-        editorRects.push({ x0, y0, x1, y1 });
-      }
-      drawStart = null;
-      editorDraw();
-    });
-
-    editorCanvas.addEventListener('mouseleave', () => {
-      if (drawStart) {
-        drawStart = null;
-        editorDraw();
-      }
-    });
-
-    function editorUndo() {
-      editorRects.pop();
-      editorDraw();
-    }
-
-    function editorClearAll() {
-      editorRects = [];
-      editorDraw();
-    }
-
-    function editorClose() {
-      editorModal.classList.remove('visible');
-      editorImage = null;
-      editorRects = [];
-      drawStart = null;
-    }
-
-    async function editorApply() {
-      if (editorRects.length === 0) {
-        alert('Draw at least one rectangle first.');
-        return;
-      }
-
-      // Scale canvas coords to image-space coords
-      const scaleX = editorImage.naturalWidth / editorCanvas.width;
-      const scaleY = editorImage.naturalHeight / editorCanvas.height;
-      const rectangles = editorRects.map((r) => ({
-        x0: Math.round(r.x0 * scaleX),
-        y0: Math.round(r.y0 * scaleY),
-        x1: Math.round(r.x1 * scaleX),
-        y1: Math.round(r.y1 * scaleY),
-      }));
-
-      editorApplyBtn.disabled = true;
-      editorApplyBtn.textContent = 'Applying...';
-
-      try {
-        const res = await fetch('/api/manual-overlay', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: editorFilename, rectangles, watermark: getWatermarkOptions() }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Manual overlay failed');
-
-        // Refresh the card image with cache-bust
-        refreshCardImage(editorFilename);
-        editorClose();
-      } catch (err) {
-        alert('Failed to apply: ' + err.message);
-      } finally {
-        editorApplyBtn.disabled = false;
-        editorApplyBtn.textContent = 'Apply';
-      }
-    }
-
-    // ========== Reprocess Single Image ==========
-
-    async function reprocessImage(filename, btn) {
-      btn.disabled = true;
-      btn.textContent = 'Processing...';
-
-      try {
-        const res = await fetch(`/api/reprocess/${encodeURIComponent(filename)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ watermark: getWatermarkOptions() }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Reprocess failed');
-
-        // Refresh the card image
-        refreshCardImage(filename);
-
-        // Update the badge
-        const badge = document.querySelector(`.badge[data-filename="${filename}"]`);
-        if (badge) {
-          if (data.platesFound > 0) {
-            badge.className = 'badge masked';
-            badge.textContent = `${data.platesFound} plate(s) masked`;
-          } else {
-            badge.className = 'badge none';
-            badge.textContent = 'no plates found';
-          }
-        }
-      } catch (err) {
-        alert('Reprocess failed: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Reprocess';
-      }
-    }
-
-    // ========== Helpers ==========
-
-    function refreshCardImage(filename) {
-      const imgs = grid.querySelectorAll('img');
-      for (const img of imgs) {
-        if (img.alt === filename) {
-          img.src = `/api/images/${encodeURIComponent(filename)}?t=${Date.now()}`;
-          break;
-        }
-      }
-    }
-
-    async function downloadImage(filename) {
-      try {
-        const res = await fetch(`/api/images/${encodeURIComponent(filename)}`);
-        const blob = await res.blob();
-        const file = new File([blob], filename, { type: 'image/jpeg' });
-
-        // Mobile: use Share API to open share sheet (Save Image option)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file] });
-          return;
-        }
-
-        // Desktop: regular download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          alert('Download failed: ' + err.message);
-        }
-      }
-    }
-
-    async function downloadAll() {
-      const badges = grid.querySelectorAll('.badge[data-filename]');
-      const filenames = [...badges].map((b) => b.dataset.filename);
-
-      if (filenames.length === 0) {
-        alert('No images to download.');
-        return;
-      }
-
-      const btn = document.querySelector('.download-all-btn');
-      btn.disabled = true;
-      btn.textContent = 'Downloading...';
-
-      try {
-        // Get ZIP from server (single fast request)
-        const res = await fetch('/api/download-all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filenames }),
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Download failed');
-        }
-
-        const blob = await res.blob();
-
-        // Mobile: share ZIP via Share API
-        try {
-          const zipFile = new File([blob], 'plate-masker-output.zip', { type: 'application/zip' });
-          if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
-            await navigator.share({ files: [zipFile] });
-            return;
-          }
-        } catch (err) {
-          if (err.name === 'AbortError') return;
-        }
-
-        // Desktop / fallback: trigger download
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'plate-masker-output.zip';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        alert('Download failed: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Download All';
-      }
-    }
-  </script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" type="module"></script>
 </body>
 </html>

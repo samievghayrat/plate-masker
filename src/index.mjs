@@ -29,11 +29,12 @@ program
     console.log(`Color:  ${opts.color}`);
 
     try {
-      const results = await processUrl(url, {
+      const { images: results } = await processUrl(url, {
         output: opts.output,
         color: opts.color,
         kcarUser: opts.kcarUser,
         kcarPass: opts.kcarPass,
+        maskPlates: true,
       });
 
       console.log('\n=== Summary ===');
