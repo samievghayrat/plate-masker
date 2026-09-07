@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0d1b2a">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Korea Car Post Studio</title>
+  <title>Студия объявлений авто из Кореи</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -13,10 +13,10 @@
     <div class="header-inner">
       <div class="brand-mark" aria-hidden="true">G</div>
       <div>
-        <p class="eyebrow">GHAYRAT · KOREA</p>
-        <h1>Korea Car Post Studio</h1>
+        <p class="eyebrow">GHAYRAT · КОРЕЯ</p>
+        <h1>Студия объявлений авто из Кореи</h1>
       </div>
-      <span class="privacy-chip">Private tool</span>
+      <span class="privacy-chip">Личный инструмент</span>
     </div>
   </header>
 
@@ -26,8 +26,8 @@
         <div>
           <span class="step-number">1</span>
           <div>
-            <h2>Paste an Encar or KB link</h2>
-            <p>Get the photos and prepare a Russian sales post in one step.</p>
+            <h2>Вставьте ссылку Encar или KB</h2>
+            <p>Загрузите фотографии и подготовьте объявление на русском языке.</p>
           </div>
         </div>
       </div>
@@ -35,44 +35,44 @@
       <div class="url-row">
         <div class="url-field">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 13.4a1.5 1.5 0 0 0 2.1 0l3.8-3.8a3 3 0 0 0-4.2-4.2l-2.2 2.2M13.4 10.6a1.5 1.5 0 0 0-2.1 0l-3.8 3.8a3 3 0 0 0 4.2 4.2l2.2-2.2"/></svg>
-          <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="Encar or KB차차차 vehicle link" aria-label="Encar or KB Chachacha listing URL">
-          <button id="clearBtn" class="icon-btn clear-input" type="button" aria-label="Clear link">×</button>
+          <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="Ссылка на автомобиль Encar или KB차차차" aria-label="Ссылка на объявление Encar или KB Chachacha">
+          <button id="clearBtn" class="icon-btn clear-input" type="button" aria-label="Очистить ссылку">×</button>
         </div>
-        <button id="pasteBtn" class="btn btn-secondary" type="button">Paste</button>
+        <button id="pasteBtn" class="btn btn-secondary" type="button">Вставить</button>
       </div>
 
-      <div class="task-options" aria-label="Processing options">
+      <div class="task-options" aria-label="Параметры обработки">
         <label class="option-card selected" id="maskOptionCard">
           <span class="option-icon privacy">▰</span>
-          <span class="option-copy"><strong>Mask plates</strong><small>Recommended for privacy</small></span>
+          <span class="option-copy"><strong>Скрыть госномера</strong><small>Рекомендуется для конфиденциальности</small></span>
           <span class="switch"><input id="maskPlatesToggle" type="checkbox" checked><i></i></span>
         </label>
         <label class="option-card selected" id="textOptionCard">
           <span class="option-icon text">Aa</span>
-          <span class="option-copy"><strong>Generate post text</strong><small>Uses your Russian format</small></span>
+          <span class="option-copy"><strong>Создать текст объявления</strong><small>Используется ваш русский формат</small></span>
           <span class="switch"><input id="generateTextToggle" type="checkbox" checked><i></i></span>
         </label>
         <label class="option-card selected" id="watermarkOptionCard">
           <span class="option-icon watermark">G</span>
-          <span class="option-copy"><strong>Add watermark</strong><small>Protect your photos</small></span>
+          <span class="option-copy"><strong>Добавить водяной знак</strong><small>Защищает ваши фотографии</small></span>
           <span class="switch"><input id="watermarkEnabled" type="checkbox" checked><i></i></span>
         </label>
       </div>
 
       <details id="watermarkSettings" class="advanced-settings">
-        <summary>Watermark settings</summary>
+        <summary>Настройки водяного знака</summary>
         <div class="watermark-form">
-          <label><span>Line 1</span><input id="wmLine1" value="Для заказов" maxlength="50"></label>
-          <label><span>Line 2</span><input id="wmLine2" value="+82-10-9922-1601" maxlength="50"></label>
-          <label><span>Line 3</span><input id="wmLine3" value="GHAYRAT" maxlength="50"></label>
+          <label><span>Строка 1</span><input id="wmLine1" value="Для заказов" maxlength="50"></label>
+          <label><span>Строка 2</span><input id="wmLine2" value="+82-10-9922-1601" maxlength="50"></label>
+          <label><span>Строка 3</span><input id="wmLine3" value="GHAYRAT" maxlength="50"></label>
         </div>
       </details>
 
       <button id="processBtn" class="btn btn-primary btn-large" type="button">
-        <span>Prepare photos &amp; post</span>
+        <span>Подготовить фото и объявление</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
       </button>
-      <p class="privacy-note"><span>●</span> The plate number is never added to the generated post. VIN is off by default.</p>
+      <p class="privacy-note"><span>●</span> Госномер никогда не добавляется в объявление. VIN по умолчанию выключен.</p>
     </section>
 
     <div id="errorBox" class="message error-message" role="alert" hidden></div>
@@ -81,8 +81,8 @@
       <div class="progress-top">
         <div class="spinner" aria-hidden="true"></div>
         <div>
-          <strong id="progressTitle">Reading the car</strong>
-          <p id="progressMessage">Connecting to the listing…</p>
+          <strong id="progressTitle">Читаем данные автомобиля</strong>
+          <p id="progressMessage">Подключаемся к объявлению…</p>
         </div>
         <span id="progressCount"></span>
       </div>
@@ -93,11 +93,11 @@
       <section id="carSummary" class="car-summary panel" hidden>
         <div class="car-heading">
           <div>
-            <p class="eyebrow accent">CAR FOUND</p>
+            <p class="eyebrow accent">АВТОМОБИЛЬ НАЙДЕН</p>
             <h2 id="carTitle"></h2>
             <p id="carSubtitle"></p>
           </div>
-          <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noopener">Open source ↗</a>
+          <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noopener">Открыть источник ↗</a>
         </div>
         <div id="specGrid" class="spec-grid"></div>
       </section>
@@ -106,34 +106,34 @@
         <div class="section-heading compact">
           <div>
             <span class="step-number">2</span>
-            <div><h2>Sales post</h2><p>Edit anything before you copy or share it.</p></div>
+            <div><h2>Текст объявления</h2><p>Перед копированием или отправкой текст можно изменить.</p></div>
           </div>
-          <span class="ready-chip">Generated</span>
+          <span class="ready-chip">Готово</span>
         </div>
 
         <div class="post-settings">
           <label>
-            <span>Price format</span>
+            <span>Формат цены</span>
             <select id="priceMode">
-              <option value="korea">Price in Korea</option>
-              <option value="turnkey">Turnkey to Vladivostok</option>
+              <option value="korea">Цена в Корее</option>
+              <option value="turnkey">Под ключ до Владивостока</option>
             </select>
           </label>
           <label id="turnkeyPriceField" hidden>
-            <span>Turnkey price (₽)</span>
-            <input id="turnkeyPrice" inputmode="numeric" placeholder="e.g. 3,500,000">
+            <span>Цена под ключ (₽)</span>
+            <input id="turnkeyPrice" inputmode="numeric" placeholder="например, 3 500 000">
           </label>
           <label class="privacy-toggle">
             <span class="switch"><input id="includeVin" type="checkbox"><i></i></span>
-            <span><strong>Include VIN</strong><small>Off for privacy</small></span>
+            <span><strong>Добавить VIN</strong><small>Выключено для конфиденциальности</small></span>
           </label>
         </div>
 
-        <textarea id="postText" spellcheck="false" aria-label="Generated car post"></textarea>
+        <textarea id="postText" spellcheck="false" aria-label="Созданное объявление автомобиля"></textarea>
         <div class="action-row">
-          <button id="copyPostBtn" class="btn btn-primary" type="button">Copy text</button>
-          <button id="sharePostBtn" class="btn btn-secondary" type="button">Share text</button>
-          <button id="regenerateBtn" class="btn btn-ghost" type="button">Reset text</button>
+          <button id="copyPostBtn" class="btn btn-primary" type="button">Копировать текст</button>
+          <button id="sharePostBtn" class="btn btn-secondary" type="button">Поделиться текстом</button>
+          <button id="regenerateBtn" class="btn btn-ghost" type="button">Сбросить текст</button>
         </div>
       </section>
 
@@ -141,15 +141,15 @@
         <div class="section-heading compact gallery-heading">
           <div>
             <span class="step-number">3</span>
-            <div><h2>Your photos</h2><p id="gallerySummary"></p></div>
+            <div><h2>Ваши фотографии</h2><p id="gallerySummary"></p></div>
           </div>
-          <label class="select-all"><input id="selectAll" type="checkbox" autocomplete="off"> Select all</label>
+          <label class="select-all"><input id="selectAll" type="checkbox" autocomplete="off"> Выбрать все</label>
         </div>
 
         <div class="gallery-actions">
-          <button id="saveSelectedBtn" class="btn btn-success" type="button">Save selected to gallery</button>
-          <button id="shareBundleBtn" class="btn btn-primary" type="button">Share photos + text</button>
-          <button id="zipBtn" class="btn btn-secondary" type="button">Download ZIP</button>
+          <button id="saveSelectedBtn" class="btn btn-success" type="button">Сохранить выбранные в галерею</button>
+          <button id="shareBundleBtn" class="btn btn-primary" type="button">Поделиться фото и текстом</button>
+          <button id="zipBtn" class="btn btn-secondary" type="button">Скачать ZIP</button>
         </div>
 
         <div id="photoGrid" class="photo-grid"></div>
@@ -160,14 +160,14 @@
   <div id="editorModal" class="modal-backdrop" hidden>
     <section class="editor-modal" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
       <header>
-        <div><h2 id="editorTitle">Cover a missed plate</h2><p>Drag a rectangle over the plate.</p></div>
-        <button id="editorCloseBtn" class="icon-btn" type="button" aria-label="Close editor">×</button>
+        <div><h2 id="editorTitle">Скрыть пропущенный номер</h2><p>Нарисуйте прямоугольник поверх номера.</p></div>
+        <button id="editorCloseBtn" class="icon-btn" type="button" aria-label="Закрыть редактор">×</button>
       </header>
       <div class="canvas-wrap"><canvas id="editorCanvas"></canvas></div>
       <footer>
-        <button id="editorUndoBtn" class="btn btn-ghost" type="button">Undo</button>
-        <button id="editorClearBtn" class="btn btn-ghost danger-text" type="button">Clear</button>
-        <button id="editorApplyBtn" class="btn btn-success" type="button">Apply mask</button>
+        <button id="editorUndoBtn" class="btn btn-ghost" type="button">Отменить</button>
+        <button id="editorClearBtn" class="btn btn-ghost danger-text" type="button">Очистить</button>
+        <button id="editorApplyBtn" class="btn btn-success" type="button">Применить маску</button>
       </footer>
     </section>
   </div>

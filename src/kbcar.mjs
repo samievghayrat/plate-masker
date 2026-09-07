@@ -109,8 +109,8 @@ export function parseKbListingHtml(html, sourceUrl, carSeq = extractKbCarSeq(sou
   const priceUnits = numberFrom(priceText);
   const priceKrw = /만원/.test(priceText) ? priceUnits * 10000 : priceUnits;
 
-  if (!rawTitle) throw new Error('KB Chachacha vehicle details were not found. The listing may have expired.');
-  if (imageUrls.length === 0) throw new Error('KB Chachacha returned no photos. The listing may have expired.');
+  if (!rawTitle) throw new Error('Данные автомобиля KB Chachacha не найдены. Возможно, объявление закрыто.');
+  if (imageUrls.length === 0) throw new Error('KB Chachacha не вернул фотографии. Возможно, объявление закрыто.');
 
   return {
     id: carSeq,
@@ -143,7 +143,7 @@ export function parseKbListingHtml(html, sourceUrl, carSeq = extractKbCarSeq(sou
 
 export async function fetchKbListing(url) {
   const carSeq = extractKbCarSeq(url);
-  if (!carSeq) throw new Error('No KB Chachacha car number was found in this link.');
+  if (!carSeq) throw new Error('В ссылке не найден номер автомобиля KB Chachacha.');
   console.log(`[kbchachacha] Loading structured listing data for car ${carSeq}...`);
   const canonicalUrl = `${KB_ORIGIN}/public/car/detail.kbc?carSeq=${encodeURIComponent(carSeq)}`;
   const response = await axios.get(canonicalUrl, {

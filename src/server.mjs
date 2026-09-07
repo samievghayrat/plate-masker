@@ -68,14 +68,14 @@ app.post('/api/process', async (req, res) => {
   } = req.body;
 
   if (!url || !isValidUrl(url)) {
-    return res.status(400).json({ error: 'Invalid URL. Please provide a valid HTTP/HTTPS URL.' });
+    return res.status(400).json({ error: 'Некорректная ссылка. Укажите действительную ссылку HTTP/HTTPS.' });
   }
 
   const jobId = String(++jobCounter);
   jobs.set(jobId, {
     status: 'processing',
     url,
-    progress: { stage: 'starting', current: 0, total: 1, message: 'Starting' },
+    progress: { stage: 'starting', current: 0, total: 1, message: 'Запуск обработки' },
   });
 
   console.log(`[server] Job ${jobId} started: ${url}`);
@@ -103,7 +103,7 @@ app.post('/api/process', async (req, res) => {
       postText: generateText && publicCar
         ? generateCarPost(publicCar, { includeVin: false, priceMode: 'korea' })
         : '',
-      progress: { stage: 'done', current: response.length, total: response.length, message: 'Ready to post' },
+      progress: { stage: 'done', current: response.length, total: response.length, message: 'Готово к публикации' },
     });
     console.log(`[server] Job ${jobId} done — ${images.length} image(s) processed`);
     return jobs.get(jobId);
@@ -126,7 +126,7 @@ app.post('/api/process', async (req, res) => {
 // Poll job status
 app.get('/api/jobs/:id', (req, res) => {
   const job = jobs.get(req.params.id);
-  if (!job) return res.status(404).json({ error: 'Job not found' });
+  if (!job) return res.status(404).json({ error: 'Задание не найдено' });
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.json(job);
@@ -136,7 +136,7 @@ app.get('/api/jobs/:id', (req, res) => {
 app.post('/api/jobs/:id/generate-text', (req, res) => {
   const job = jobs.get(req.params.id);
   if (!job || job.status !== 'done' || !job.car) {
-    return res.status(404).json({ error: 'Car details are not available for this job' });
+    return res.status(404).json({ error: 'Данные автомобиля для этого задания недоступны' });
   }
 
   const priceMode = req.body?.priceMode === 'turnkey' ? 'turnkey' : 'korea';
@@ -152,7 +152,7 @@ app.post('/api/jobs/:id/generate-text', (req, res) => {
 // may not be present on a later request.
 app.post('/api/generate-text', (req, res) => {
   if (!req.body?.car || typeof req.body.car !== 'object') {
-    return res.status(400).json({ error: 'Car details are required' });
+    return res.status(400).json({ error: 'Необходимы данные автомобиля' });
   }
   const priceMode = req.body.priceMode === 'turnkey' ? 'turnkey' : 'korea';
   res.json({
@@ -181,7 +181,7 @@ function isAllowedListingImage(value) {
 app.post('/api/process-image', async (req, res) => {
   const { sourceUrl, rectangles, watermark } = req.body || {};
   if (!isAllowedListingImage(sourceUrl)) {
-    return res.status(400).json({ error: 'Unsupported image source' });
+    return res.status(400).json({ error: 'Источник изображения не поддерживается' });
   }
 
   try {
@@ -222,7 +222,7 @@ app.get('/api/images/:filename', (req, res) => {
   const filePath = path.join(OUTPUT_DIR, filename);
 
   if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Image not found' });
+    return res.status(404).json({ error: 'Изображение не найдено' });
   }
 
   res.setHeader('Cache-Control', 'no-store, max-age=0');
@@ -235,7 +235,7 @@ app.get('/api/download/:filename', (req, res) => {
   const filePath = path.join(OUTPUT_DIR, filename);
 
   if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Image not found' });
+    return res.status(404).json({ error: 'Изображение не найдено' });
   }
 
   res.download(path.resolve(filePath), filename);
@@ -247,7 +247,7 @@ app.delete('/api/images/:filename', (req, res) => {
   const filePath = path.join(OUTPUT_DIR, filename);
 
   if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Image not found' });
+    return res.status(404).json({ error: 'Изображение не найдено' });
   }
 
   fs.unlinkSync(filePath);
@@ -267,7 +267,7 @@ app.post('/api/manual-overlay', async (req, res) => {
   const { filename, rectangles, watermark } = req.body;
 
   if (!filename || !Array.isArray(rectangles) || rectangles.length === 0) {
-    return res.status(400).json({ error: 'filename and non-empty rectangles array required' });
+    return res.status(400).json({ error: 'Необходимо имя файла и хотя бы один прямоугольник' });
   }
 
   const safeName = path.basename(filename);
@@ -279,7 +279,7 @@ app.post('/api/manual-overlay', async (req, res) => {
   let sourcePath = originalPath;
   if (!fs.existsSync(originalPath)) {
     if (!fs.existsSync(processedPath)) {
-      return res.status(404).json({ error: 'Image not found' });
+      return res.status(404).json({ error: 'Изображение не найдено' });
     }
     sourcePath = processedPath;
   }
@@ -307,7 +307,7 @@ app.post('/api/reprocess/:filename', async (req, res) => {
   const processedPath = path.join(OUTPUT_DIR, safeName);
 
   if (!fs.existsSync(originalPath)) {
-    return res.status(400).json({ error: 'Original image not available. Cannot reprocess.' });
+    return res.status(400).json({ error: 'Оригинал изображения недоступен для повторной обработки.' });
   }
 
   try {
@@ -337,7 +337,7 @@ app.post('/api/download-all', (req, res) => {
   const outputPath = path.resolve(OUTPUT_DIR);
 
   if (!fs.existsSync(outputPath)) {
-    return res.status(404).json({ error: 'No output directory found' });
+    return res.status(404).json({ error: 'Папка с результатами не найдена' });
   }
 
   // If filenames provided, only include those; otherwise fall back to all non-original images
@@ -353,7 +353,7 @@ app.post('/api/download-all', (req, res) => {
   }
 
   if (files.length === 0) {
-    return res.status(404).json({ error: 'No images to download' });
+    return res.status(404).json({ error: 'Нет изображений для скачивания' });
   }
 
   res.setHeader('Content-Type', 'application/zip');

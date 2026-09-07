@@ -391,7 +391,7 @@ export async function fetchEncarListing(url) {
   const priceKrw = (Number(advertisement.price) || 0) * 10000;
 
   if (imageUrls.length === 0) {
-    throw new Error('Encar returned no photos for this listing. It may have been removed.');
+    throw new Error('Encar не вернул фотографии. Возможно, объявление удалено.');
   }
 
   return {

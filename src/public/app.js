@@ -77,7 +77,7 @@ function clearError() {
 
 function setBusy(busy) {
   elements.processBtn.disabled = busy;
-  elements.processBtn.querySelector('span').textContent = busy ? 'Working…' : 'Prepare photos & post';
+  elements.processBtn.querySelector('span').textContent = busy ? 'Обработка…' : 'Подготовить фото и объявление';
 }
 
 function updateOptionCard(toggle, cardSelector) {
@@ -114,7 +114,7 @@ elements.pasteBtn.addEventListener('click', async () => {
     elements.urlInput.focus();
   } catch {
     elements.urlInput.focus();
-    showToast('Press and hold the field to paste');
+    showToast('Нажмите и удерживайте поле, чтобы вставить ссылку');
   }
 });
 
@@ -129,7 +129,7 @@ function getWatermarkOptions() {
 async function processListing() {
   const url = elements.urlInput.value.trim();
   if (!url) {
-    showError('Paste an Encar or KB Chachacha listing link first.');
+    showError('Сначала вставьте ссылку на объявление Encar или KB Chachacha.');
     elements.urlInput.focus();
     return;
   }
@@ -137,7 +137,7 @@ async function processListing() {
   try {
     new URL(url);
   } catch {
-    showError('This does not look like a valid link.');
+    showError('Похоже, это некорректная ссылка.');
     return;
   }
 
@@ -145,7 +145,7 @@ async function processListing() {
   setBusy(true);
   resetResults();
   elements.progressPanel.hidden = false;
-  updateProgress({ stage: 'starting', current: 0, total: 1, message: 'Connecting to the listing' });
+  updateProgress({ stage: 'starting', current: 0, total: 1, message: 'Подключаемся к объявлению' });
 
   try {
     const response = await fetch('/api/process', {
@@ -159,17 +159,17 @@ async function processListing() {
       }),
     });
     const data = await response.json();
-    if (!response.ok || data.error) throw new Error(data.error || 'Could not start processing');
+    if (!response.ok || data.error) throw new Error(data.error || 'Не удалось начать обработку');
     state.jobId = data.jobId;
     if (data.status === 'done') {
       renderWorkspace(data);
       return;
     }
     const result = await pollJob(data.jobId);
-    if (result.status === 'error') throw new Error(result.error || 'Processing failed');
+    if (result.status === 'error') throw new Error(result.error || 'Не удалось обработать объявление');
     renderWorkspace(result);
   } catch (error) {
-    showError(error.message || 'Something went wrong.');
+    showError(error.message || 'Что-то пошло не так.');
   } finally {
     elements.progressPanel.hidden = true;
     setBusy(false);
@@ -180,7 +180,7 @@ async function pollJob(jobId) {
   while (true) {
     const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}?t=${Date.now()}`, { cache: 'no-store' });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Could not read job status');
+    if (!response.ok) throw new Error(data.error || 'Не удалось получить состояние обработки');
     if (data.progress) updateProgress(data.progress);
     if (data.status === 'done' || data.status === 'error') return data;
     await new Promise((resolve) => setTimeout(resolve, 850));
@@ -189,12 +189,12 @@ async function pollJob(jobId) {
 
 function updateProgress(progress) {
   const stageTitles = {
-    starting: 'Starting',
-    details: 'Reading the car',
-    download: 'Downloading photos',
-    mask: 'Protecting your privacy',
-    prepare: 'Preparing photos',
-    done: 'Ready',
+    starting: 'Запуск',
+    details: 'Читаем данные автомобиля',
+    download: 'Загружаем фотографии',
+    mask: 'Скрываем госномера',
+    prepare: 'Подготавливаем фотографии',
+    done: 'Готово',
   };
   const base = { starting: 2, details: 6, download: 10, mask: 42, prepare: 42, done: 100 };
   const span = { download: 30, mask: 55, prepare: 55 };
@@ -202,8 +202,8 @@ function updateProgress(progress) {
   if (progress.total && span[progress.stage]) {
     percent += (Math.max(0, progress.current) / progress.total) * span[progress.stage];
   }
-  elements.progressTitle.textContent = stageTitles[progress.stage] || 'Working';
-  elements.progressMessage.textContent = progress.message || 'Please wait…';
+  elements.progressTitle.textContent = stageTitles[progress.stage] || 'Обработка';
+  elements.progressMessage.textContent = progress.message || 'Пожалуйста, подождите…';
   elements.progressCount.textContent = progress.total > 1 ? `${progress.current}/${progress.total}` : '';
   elements.progressBar.style.width = `${Math.min(100, Math.max(5, percent))}%`;
 }
@@ -241,17 +241,17 @@ function formatNumber(value) {
 
 function renderCarSummary(car) {
   const title = [car.brand, car.model, car.generationCode, car.trim].filter(Boolean).join(' ');
-  elements.carTitle.textContent = title || 'Korean vehicle';
-  elements.carSubtitle.textContent = `${car.photoCount || state.images.length} original photos found`;
+  elements.carTitle.textContent = title || 'Автомобиль из Кореи';
+  elements.carSubtitle.textContent = `Найдено оригинальных фото: ${car.photoCount || state.images.length}`;
   elements.sourceLink.href = car.sourceUrl;
-  elements.sourceLink.textContent = car.source === 'kbchachacha' ? 'Open KB Chachacha ↗' : 'Open Encar ↗';
+  elements.sourceLink.textContent = car.source === 'kbchachacha' ? 'Открыть KB Chachacha ↗' : 'Открыть Encar ↗';
   const year = car.year ? `${car.year}${car.month ? `/${String(car.month).padStart(2, '0')}` : ''}` : '—';
   const specs = [
-    ['Year', year],
-    ['Mileage', car.mileage ? `${formatNumber(car.mileage)} km` : '—'],
-    ['Engine', [car.engine, car.fuel].filter(Boolean).join(' ') || '—'],
-    ['Transmission', car.transmission || '—'],
-    ['Korea price', car.priceKrw ? `${formatNumber(car.priceKrw)} ₩` : '—'],
+    ['Год', year],
+    ['Пробег', car.mileage ? `${formatNumber(car.mileage)} км` : '—'],
+    ['Двигатель', [car.engine, car.fuel].filter(Boolean).join(' ') || '—'],
+    ['Коробка', car.transmission || '—'],
+    ['Цена в Корее', car.priceKrw ? `${formatNumber(car.priceKrw)} ₩` : '—'],
   ];
   elements.specGrid.replaceChildren(...specs.map(([label, value]) => {
     const item = document.createElement('div');
@@ -281,8 +281,8 @@ function renderGallery(images, { preserveSelection = false } = {}) {
   const masked = images.filter((image) => image.platesFound > 0).length;
   const review = images.filter((image) => image.maskRequested && image.platesFound === 0).length;
   elements.gallerySummary.textContent = images[0]?.maskRequested
-    ? `${images.length} photos · ${masked} masked${review ? ` · ${review} to review` : ''}`
-    : `${images.length} photos ready without plate masking`;
+    ? `Фото: ${images.length} · номера скрыты: ${masked}${review ? ` · проверить: ${review}` : ''}`
+    : `Готово фото без маскирования: ${images.length}`;
 
   images.forEach((image, index) => elements.photoGrid.append(createPhotoCard(image, index)));
   updateSelectionUi();
@@ -307,7 +307,7 @@ function createPhotoCard(image, index) {
   checkbox.type = 'checkbox';
   checkbox.autocomplete = 'off';
   checkbox.checked = isSelected;
-  checkbox.setAttribute('aria-label', `Select ${image.filename}`);
+  checkbox.setAttribute('aria-label', `Выбрать ${image.filename}`);
   checkbox.addEventListener('change', () => {
     if (checkbox.checked) state.selected.add(image.filename);
     else {
@@ -326,7 +326,7 @@ function createPhotoCard(image, index) {
   if (isCover) {
     const coverBadge = document.createElement('span');
     coverBadge.className = 'photo-cover-badge';
-    coverBadge.textContent = 'Cover';
+    coverBadge.textContent = 'Обложка';
     card.append(coverBadge);
   }
 
@@ -334,12 +334,12 @@ function createPhotoCard(image, index) {
   status.className = 'photo-status';
   if (!image.maskRequested) {
     status.classList.add('original');
-    status.textContent = 'No plate mask';
+    status.textContent = 'Без маски';
   } else if (image.platesFound > 0) {
-    status.textContent = 'Plate masked';
+    status.textContent = 'Номер скрыт';
   } else {
     status.classList.add('review');
-    status.textContent = 'Review plate';
+    status.textContent = 'Проверить номер';
   }
 
   const photo = document.createElement('img');
@@ -355,19 +355,19 @@ function createPhotoCard(image, index) {
   name.title = image.filename;
   const tools = document.createElement('div');
   tools.className = 'photo-tools';
-  const coverBtn = miniButton(isCover ? 'Cover ✓' : 'Cover', () => makeCover(image.filename));
+  const coverBtn = miniButton(isCover ? 'Обложка ✓' : 'Обложка', () => makeCover(image.filename));
   coverBtn.disabled = isCover;
   const upBtn = miniButton('↑', () => movePhoto(image.filename, -1));
-  upBtn.title = 'Move earlier';
-  upBtn.setAttribute('aria-label', `Move ${image.filename} earlier`);
+  upBtn.title = 'Переместить раньше';
+  upBtn.setAttribute('aria-label', `Переместить ${image.filename} раньше`);
   upBtn.disabled = index === 0 || (Boolean(state.coverFilename) && index === 1);
   const downBtn = miniButton('↓', () => movePhoto(image.filename, 1));
-  downBtn.title = 'Move later';
-  downBtn.setAttribute('aria-label', `Move ${image.filename} later`);
+  downBtn.title = 'Переместить позже';
+  downBtn.setAttribute('aria-label', `Переместить ${image.filename} позже`);
   downBtn.disabled = index === state.images.length - 1 || isCover;
-  const editBtn = miniButton('Mask', () => openEditor(image.filename));
-  const retryBtn = miniButton('Detect', () => reprocessImage(image.filename, retryBtn, status));
-  const saveBtn = miniButton('Download', () => saveOneImage(image.filename, saveBtn));
+  const editBtn = miniButton('Скрыть', () => openEditor(image.filename));
+  const retryBtn = miniButton('Найти', () => reprocessImage(image.filename, retryBtn, status));
+  const saveBtn = miniButton('Скачать', () => saveOneImage(image.filename, saveBtn));
   tools.append(coverBtn, upBtn, downBtn, editBtn, retryBtn, saveBtn);
   footer.append(name, tools);
   card.append(selectLabel, status, photo, footer);
@@ -382,7 +382,7 @@ function makeCover(filename) {
   state.selected.add(filename);
   state.coverFilename = filename;
   renderGallery(state.images, { preserveSelection: true });
-  showToast('Cover selected and moved first');
+  showToast('Обложка выбрана и перемещена на первое место');
 }
 
 function movePhoto(filename, direction) {
@@ -412,7 +412,7 @@ function updateSelectionUi() {
   const count = state.selected.size;
   elements.selectAll.checked = count > 0 && count === state.images.length;
   elements.selectAll.indeterminate = count > 0 && count < state.images.length;
-  elements.saveSelectedBtn.textContent = count ? `Save ${count} selected to gallery` : 'Select photos first';
+  elements.saveSelectedBtn.textContent = count ? `Сохранить выбранные (${count})` : 'Сначала выберите фото';
   elements.saveSelectedBtn.disabled = count === 0;
   elements.shareBundleBtn.disabled = count === 0;
   elements.zipBtn.disabled = count === 0;
@@ -446,7 +446,7 @@ async function regenerateText() {
     }),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Could not generate text');
+  if (!response.ok) throw new Error(data.error || 'Не удалось создать текст');
   elements.postText.value = data.postText;
 }
 
@@ -465,7 +465,7 @@ elements.turnkeyPrice.addEventListener('input', () => {
   scheduleRegenerate();
 });
 elements.includeVin.addEventListener('change', scheduleRegenerate);
-$('#regenerateBtn').addEventListener('click', () => regenerateText().then(() => showToast('Text reset from car details')).catch((error) => showError(error.message)));
+$('#regenerateBtn').addEventListener('click', () => regenerateText().then(() => showToast('Текст восстановлен из данных автомобиля')).catch((error) => showError(error.message)));
 
 async function copyText(text) {
   if (navigator.clipboard?.writeText) {
@@ -485,9 +485,9 @@ async function copyText(text) {
 $('#copyPostBtn').addEventListener('click', async () => {
   try {
     await copyText(elements.postText.value);
-    showToast('Post text copied');
+    showToast('Текст объявления скопирован');
   } catch (error) {
-    showError(`Could not copy text: ${error.message}`);
+    showError(`Не удалось скопировать текст: ${error.message}`);
   }
 });
 
@@ -497,17 +497,17 @@ $('#sharePostBtn').addEventListener('click', async () => {
     if (navigator.share) await navigator.share({ title: elements.carTitle.textContent, text });
     else {
       await copyText(text);
-      showToast('Sharing is unavailable here, so the text was copied');
+      showToast('Отправка недоступна, поэтому текст скопирован');
     }
   } catch (error) {
-    if (error.name !== 'AbortError') showError(`Could not share: ${error.message}`);
+    if (error.name !== 'AbortError') showError(`Не удалось поделиться: ${error.message}`);
   }
 });
 
 async function getImageFile(filename) {
   if (!state.fileCache.has(filename)) {
     state.fileCache.set(filename, fetch(imageUrl(filename)).then(async (response) => {
-      if (!response.ok) throw new Error(`Could not load ${filename}`);
+      if (!response.ok) throw new Error(`Не удалось загрузить ${filename}`);
       const blob = await response.blob();
       return new File([blob], filename, { type: blob.type || 'image/jpeg' });
     }).catch((error) => {
@@ -536,7 +536,7 @@ async function shareFiles(files, text = '') {
   if (!navigator.share || !navigator.canShare?.({ files })) return false;
   try {
     await navigator.share({
-      title: state.car ? `${state.car.brand} ${state.car.model}` : 'Car photos',
+      title: state.car ? `${state.car.brand} ${state.car.model}` : 'Фотографии автомобиля',
       text: text || undefined,
       files,
     });
@@ -562,40 +562,40 @@ async function withButtonProgress(button, workingLabel, action) {
 }
 
 async function saveSelectedToGallery() {
-  await withButtonProgress(elements.saveSelectedBtn, 'Preparing photos…', async () => {
+  await withButtonProgress(elements.saveSelectedBtn, 'Подготавливаем фото…', async () => {
     const files = await getSelectedFiles();
     if (hasAndroidGalleryBridge()) {
       for (const file of files) await triggerDownload(file, file.name);
-      showToast(`${files.length} photo${files.length === 1 ? '' : 's'} saved to gallery`);
+      showToast(`Сохранено фото в галерею: ${files.length}`);
       return;
     }
     if (await shareFiles(files)) return;
     if (files.length === 1) {
       await triggerDownload(files[0], files[0].name);
-      showToast('Native sharing is blocked; downloaded the photo instead');
+      showToast('Отправка недоступна — фотография скачана');
       return;
     }
     await downloadZip();
-    showToast('Native sharing is blocked; downloaded the selected photos as ZIP');
+    showToast('Отправка недоступна — выбранные фото скачаны в ZIP');
   });
 }
 
 elements.saveSelectedBtn.addEventListener('click', () => {
   saveSelectedToGallery().catch((error) => {
-    if (error.name !== 'AbortError') showError(`Could not save photos: ${error.message}`);
+    if (error.name !== 'AbortError') showError(`Не удалось сохранить фотографии: ${error.message}`);
   });
 });
 
 elements.shareBundleBtn.addEventListener('click', () => {
-  withButtonProgress(elements.shareBundleBtn, 'Preparing share…', async () => {
+  withButtonProgress(elements.shareBundleBtn, 'Подготавливаем отправку…', async () => {
     const files = await getSelectedFiles();
     const text = elements.postPanel.hidden ? '' : elements.postText.value;
     if (await shareFiles(files, text)) return;
     if (text) await copyText(text);
     await downloadZip();
-    showToast(text ? 'Text copied and photos downloaded as ZIP' : 'Photos downloaded as ZIP');
+    showToast(text ? 'Текст скопирован, фотографии скачаны в ZIP' : 'Фотографии скачаны в ZIP');
   }).catch((error) => {
-    if (error.name !== 'AbortError') showError(`Could not share: ${error.message}`);
+    if (error.name !== 'AbortError') showError(`Не удалось поделиться: ${error.message}`);
   });
 });
 
@@ -606,7 +606,7 @@ async function downloadZip() {
 }
 
 elements.zipBtn.addEventListener('click', () => {
-  withButtonProgress(elements.zipBtn, 'Building ZIP…', downloadZip)
+  withButtonProgress(elements.zipBtn, 'Создаём ZIP…', downloadZip)
     .catch((error) => showError(error.message));
 });
 
@@ -646,7 +646,7 @@ async function saveOneImage(filename, button) {
     await withButtonProgress(button, '…', async () => {
       const file = await getImageFile(filename);
       await triggerDownload(file, filename);
-      showToast('Photo downloaded');
+      showToast('Фотография скачана');
     });
   } catch (error) {
     if (error.name !== 'AbortError') showError(error.message);
@@ -662,14 +662,14 @@ async function reprocessImage(filename, button, status) {
       body: JSON.stringify({ sourceUrl: image?.sourceUrl, watermark: getWatermarkOptions() }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Plate detection failed');
+    if (!response.ok) throw new Error(data.error || 'Не удалось найти госномер');
     image.dataUrl = data.dataUrl;
     image.platesFound = data.platesFound;
     refreshPhoto(filename);
     state.fileCache.delete(filename);
     status.className = `photo-status ${data.platesFound ? '' : 'review'}`.trim();
-    status.textContent = data.platesFound ? 'Plate masked' : 'Review plate';
-    showToast(data.platesFound ? 'Plate mask updated' : 'No plate detected — use manual Mask');
+    status.textContent = data.platesFound ? 'Номер скрыт' : 'Проверить номер';
+    showToast(data.platesFound ? 'Маска госномера обновлена' : 'Номер не найден — скройте его вручную');
   }).catch((error) => showError(error.message));
 }
 
@@ -697,7 +697,7 @@ function openEditor(filename) {
     elements.editorModal.hidden = false;
     document.body.style.overflow = 'hidden';
   };
-  image.onerror = () => showError('Could not load the original photo for editing.');
+  image.onerror = () => showError('Не удалось загрузить оригинал фотографии для редактирования.');
   image.src = imageUrl(filename);
 }
 
@@ -781,10 +781,10 @@ elements.editorModal.addEventListener('click', (event) => { if (event.target ===
 
 elements.editorApplyBtn.addEventListener('click', async () => {
   if (!state.editorRects.length) {
-    showToast('Draw a rectangle over the plate first');
+    showToast('Сначала нарисуйте прямоугольник поверх госномера');
     return;
   }
-  await withButtonProgress(elements.editorApplyBtn, 'Applying…', async () => {
+  await withButtonProgress(elements.editorApplyBtn, 'Применяем…', async () => {
     const scaleX = state.editorImage.naturalWidth / elements.editorCanvas.width;
     const scaleY = state.editorImage.naturalHeight / elements.editorCanvas.height;
     const rectangles = state.editorRects.map((rect) => ({
@@ -804,7 +804,7 @@ elements.editorApplyBtn.addEventListener('click', async () => {
       }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Could not apply the mask');
+    if (!response.ok) throw new Error(data.error || 'Не удалось применить маску');
     image.dataUrl = data.dataUrl;
     image.platesFound = data.platesFound;
     const card = [...elements.photoGrid.querySelectorAll('.photo-card')]
@@ -812,12 +812,12 @@ elements.editorApplyBtn.addEventListener('click', async () => {
     if (card) {
       const status = card.querySelector('.photo-status');
       status.className = 'photo-status';
-      status.textContent = 'Masked manually';
+      status.textContent = 'Скрыто вручную';
     }
     state.fileCache.delete(state.editorFilename);
     refreshPhoto(state.editorFilename);
     closeEditor();
-    showToast('Manual plate mask applied');
+    showToast('Маска госномера применена вручную');
   }).catch((error) => showError(error.message));
 });
 

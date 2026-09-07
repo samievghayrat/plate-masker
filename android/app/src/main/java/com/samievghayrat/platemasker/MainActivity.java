@@ -103,7 +103,7 @@ public final class MainActivity extends Activity {
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 } catch (Exception error) {
-                    Toast.makeText(MainActivity.this, "Could not open this link", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Не удалось открыть ссылку", Toast.LENGTH_SHORT).show();
                 }
                 return true;
             }
@@ -185,10 +185,10 @@ public final class MainActivity extends Activity {
             try {
                 saveToMediaStore(pending);
                 showToast(pending.mimeType.startsWith("image/")
-                        ? "Saved to Pictures/Plate Masker"
-                        : "Saved to Downloads/Plate Masker");
+                        ? "Сохранено в Pictures/Plate Masker"
+                        : "Сохранено в Downloads/Plate Masker");
             } catch (Exception error) {
-                showToast("Could not save file: " + error.getMessage());
+                showToast("Не удалось сохранить файл: " + error.getMessage());
             }
         }
 
@@ -208,10 +208,10 @@ public final class MainActivity extends Activity {
 
             ContentResolver resolver = context.getContentResolver();
             Uri uri = resolver.insert(collection, values);
-            if (uri == null) throw new IOException("Android storage is unavailable");
+            if (uri == null) throw new IOException("хранилище Android недоступно");
             try {
                 try (OutputStream output = resolver.openOutputStream(uri)) {
-                    if (output == null) throw new IOException("Could not open Android storage");
+                    if (output == null) throw new IOException("не удалось открыть хранилище Android");
                     synchronized (pending) {
                         pending.data.writeTo(output);
                     }

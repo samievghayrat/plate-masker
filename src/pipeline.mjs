@@ -23,8 +23,8 @@ export async function processUrl(url, options = {}) {
   console.log('\n=== Step 1: Acquiring images ===');
   const isEncar = /encar\.com/i.test(url);
   const isKbChachacha = /kbchachacha\.com/i.test(url);
-  const sourceName = isKbChachacha ? 'KB Chachacha' : isEncar ? 'Encar' : 'the listing';
-  onProgress({ stage: 'details', current: 0, total: 1, message: `Reading ${sourceName} car details` });
+  const sourceName = isKbChachacha ? 'KB Chachacha' : isEncar ? 'Encar' : 'объявления';
+  onProgress({ stage: 'details', current: 0, total: 1, message: `Читаем данные автомобиля ${sourceName}` });
   let car = null;
   if (isEncar) {
     car = await fetchEncarListing(url);
@@ -49,8 +49,8 @@ export async function processUrl(url, options = {}) {
         current: i + 1,
         total: images.length,
         message: shouldMask
-          ? `Masking plates ${i + 1}/${images.length}`
-          : `Preparing photos ${i + 1}/${images.length}`,
+          ? `Скрываем госномера ${i + 1}/${images.length}`
+          : `Подготавливаем фотографии ${i + 1}/${images.length}`,
       });
 
       let plates = [];
@@ -97,6 +97,6 @@ export async function processUrl(url, options = {}) {
     if (shouldMask) await terminateWorker();
   }
 
-  onProgress({ stage: 'done', current: images.length, total: images.length, message: 'Ready to post' });
+  onProgress({ stage: 'done', current: images.length, total: images.length, message: 'Готово к публикации' });
   return { images: results, car };
 }

@@ -99,7 +99,7 @@ async function acquireStructuredListing(listing, onProgress) {
           stage: 'download',
           current: completed,
           total: urls.length,
-          message: `Downloading photos ${completed}/${urls.length}`,
+          message: `Загружаем фотографии ${completed}/${urls.length}`,
         });
       }
     }
@@ -107,7 +107,7 @@ async function acquireStructuredListing(listing, onProgress) {
 
   await Promise.all(workers);
   const downloaded = images.filter(Boolean);
-  if (downloaded.length === 0) throw new Error(`Could not download any ${sourceName} photos.`);
+  if (downloaded.length === 0) throw new Error(`Не удалось загрузить фотографии ${sourceName}.`);
   const filtered = await filterCarImages(downloaded);
   console.log(`[acquire] ${sourceName}: ${filtered.length}/${downloaded.length} photo(s) ready`);
   return filtered;
@@ -266,12 +266,12 @@ async function acquireEncar(url) {
     }
 
     if (domImages.length === 0) {
-      throw new Error('No images found on Encar page');
+      throw new Error('На странице Encar не найдены изображения');
     }
 
     const carImages = await filterCarImages(domImages);
     if (carImages.length === 0) {
-      throw new Error('No car-sized images found after filtering');
+      throw new Error('После фильтрации не найдены фотографии автомобиля');
     }
 
     console.log(`[acquire] Encar DOM: ${carImages.length}/${domImages.length} image(s) passed filter`);
@@ -316,7 +316,7 @@ async function acquireStatic(url) {
   console.log(`[acquire] Found ${imageUrls.length} image(s) on page`);
 
   if (imageUrls.length === 0) {
-    throw new Error('No images found on the page');
+    throw new Error('На странице не найдены изображения');
   }
 
   const images = [];
@@ -331,12 +331,12 @@ async function acquireStatic(url) {
   }
 
   if (images.length === 0) {
-    throw new Error('Failed to download any images from the page');
+    throw new Error('Не удалось загрузить изображения со страницы');
   }
 
   const carImages = await filterCarImages(images);
   if (carImages.length === 0) {
-    throw new Error('No car-sized images found after filtering');
+    throw new Error('После фильтрации не найдены фотографии автомобиля');
   }
 
   console.log(`[acquire] ${carImages.length}/${images.length} image(s) passed car-image filter`);
@@ -439,7 +439,7 @@ async function acquireKcarAuction(url, credentials) {
     console.log(`[acquire] Found ${filteredUrls.length} candidate image(s) (${imageUrls.length} before URL filter)`);
 
     if (filteredUrls.length === 0) {
-      throw new Error('No car images found on the Kcar auction page');
+      throw new Error('На странице аукциона Kcar не найдены фотографии автомобиля');
     }
 
     // Step 8: Download each image
@@ -455,12 +455,12 @@ async function acquireKcarAuction(url, credentials) {
     }
 
     if (images.length === 0) {
-      throw new Error('Failed to download any images from Kcar auction page');
+      throw new Error('Не удалось загрузить изображения со страницы аукциона Kcar');
     }
 
     const carImages = await filterCarImages(images);
     if (carImages.length === 0) {
-      throw new Error('No car-sized images found after filtering');
+      throw new Error('После фильтрации не найдены фотографии автомобиля');
     }
 
     console.log(`[acquire] Successfully downloaded ${carImages.length} car image(s) from Kcar (${images.length} total)`);
