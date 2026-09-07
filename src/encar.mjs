@@ -461,7 +461,7 @@ export function generateCarPost(car, options = {}) {
   const titleParts = [car.brand, car.model, car.generationCode, car.trim]
     .filter(Boolean)
     .filter((value, index, values) => values.indexOf(value) === index);
-  const lines = [`🚙 **${titleParts.join(' ')}** 🔥`, ''];
+  const lines = [`🚙 *${titleParts.join(' ')}* 🔥`, ''];
 
   const date = car.year
     ? `${car.year}${car.month ? `/${String(car.month).padStart(2, '0')}` : ''}`
@@ -470,13 +470,13 @@ export function generateCarPost(car, options = {}) {
     const modelYear = car.modelYear && car.modelYear !== car.year
       ? ` (${car.modelYear} модельный год)`
       : '';
-    lines.push(`📆 **Год выпуска:** ${date}${modelYear}  `);
+    lines.push(`📆 *Год выпуска:* ${date}${modelYear}  `);
   }
-  if (car.mileage) lines.push(`🛣️ **Пробег:** ${formatNumber(car.mileage)} км  `);
-  if (car.engine || car.fuel) lines.push(`⛽️ **Объём:** ${[car.engine, car.fuel].filter(Boolean).join(' ')}  `);
-  if (car.transmission) lines.push(`⚙️ **Коробка:** ${car.transmission}  `);
-  if (car.drivetrain) lines.push(`🛞 **Привод:** ${car.drivetrain}  `);
-  if (car.trim) lines.push(`💎 **Комплектация:** ${car.trim}`);
+  if (car.mileage) lines.push(`🛣️ *Пробег:* ${formatNumber(car.mileage)} км  `);
+  if (car.engine || car.fuel) lines.push(`⛽️ *Объём:* ${[car.engine, car.fuel].filter(Boolean).join(' ')}  `);
+  if (car.transmission) lines.push(`⚙️ *Коробка:* ${car.transmission}  `);
+  if (car.drivetrain) lines.push(`🛞 *Привод:* ${car.drivetrain}  `);
+  if (car.trim) lines.push(`💎 *Комплектация:* ${car.trim}`);
 
   const highlights = buildHighlights(car);
   if (highlights.length) {
@@ -485,15 +485,15 @@ export function generateCarPost(car, options = {}) {
   }
 
   if (includeVin && car.vin) lines.push('');
-  if (includeVin && car.vin) lines.push(`📄 **VIN:** ${car.vin}`);
+  if (includeVin && car.vin) lines.push(`📄 *VIN:* ${car.vin}`);
 
   lines.push('');
   if (priceMode === 'turnkey') {
-    lines.push(`💰 **Цена под ключ до Владивостока: ${turnkeyPrice ? formatNumber(turnkeyPrice) : '______'} ₽** 🇷🇺  `);
+    lines.push(`💰 *Цена под ключ до Владивостока: ${turnkeyPrice ? formatNumber(turnkeyPrice) : '______'} ₽* 🇷🇺  `);
     lines.push('✅ Со всеми платежами и расходами до Владивостока  ');
     lines.push('✅ Больше ни за что платить не нужно');
   } else if (car.priceKrw) {
-    lines.push(`💲 **Цена в Корее:** **${formatNumber(car.priceKrw)} вон**`);
+    lines.push(`💲 *Цена в Корее:* *${formatNumber(car.priceKrw)} вон*`);
   }
 
   return lines.join('\n').trim();

@@ -39,6 +39,8 @@ test('generates the saved Russian format with privacy defaults', () => {
   assert.doesNotMatch(post, /Проверен Encar Diagnosis\+/);
   assert.doesNotMatch(post, /Хорошая комплектация/);
   assert.doesNotMatch(post, /Цвет:/);
+  assert.doesNotMatch(post, /\*\*/);
+  assert.match(post, /🚙 \*Kia Sportage NQ5 Prestige\* 🔥/);
 });
 
 test('supports the turnkey price format and optional VIN', () => {
