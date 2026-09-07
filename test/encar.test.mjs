@@ -36,6 +36,9 @@ test('generates the saved Russian format with privacy defaults', () => {
   assert.match(post, /12,521 км/);
   assert.match(post, /12,730,000 вон/);
   assert.doesNotMatch(post, /KNATESTVIN1234567/);
+  assert.doesNotMatch(post, /Проверен Encar Diagnosis\+/);
+  assert.doesNotMatch(post, /Хорошая комплектация/);
+  assert.doesNotMatch(post, /Цвет:/);
 });
 
 test('supports the turnkey price format and optional VIN', () => {

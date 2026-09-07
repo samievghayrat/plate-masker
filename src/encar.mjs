@@ -429,9 +429,6 @@ function formatNumber(value) {
 
 function buildHighlights(car) {
   const highlights = [];
-  if (car.diagnosisCar) {
-    highlights.push(car.source === 'kbchachacha' ? 'Проверен диагностикой KB Chachacha' : 'Проверен Encar Diagnosis+');
-  }
   const usedGroups = new Set();
   const optionGroup = (value) => {
     if (/Память/.test(value)) return 'memory';
@@ -451,7 +448,6 @@ function buildHighlights(car) {
     if (highlights.length >= 7) break;
   }
   if (car.mileage > 0 && car.mileage < 30000) highlights.unshift('Маленький пробег');
-  if (highlights.length < 4 && car.trim) highlights.push(`Хорошая комплектация ${car.trim}`);
   if (highlights.length < 5 && car.fuel === 'дизель') highlights.push('Экономичный дизельный двигатель');
   if (highlights.length < 5 && car.bodyType === 'кроссовер') highlights.push('Практичный и удобный кроссовер');
   return [...new Set(highlights)].slice(0, 7);
@@ -488,8 +484,7 @@ export function generateCarPost(car, options = {}) {
     for (const highlight of highlights) lines.push(`✅ ${highlight}  `);
   }
 
-  if (car.color || (includeVin && car.vin)) lines.push('');
-  if (car.color) lines.push(`🎨 **Цвет:** ${car.color}  `);
+  if (includeVin && car.vin) lines.push('');
   if (includeVin && car.vin) lines.push(`📄 **VIN:** ${car.vin}`);
 
   lines.push('');
