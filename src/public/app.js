@@ -47,6 +47,7 @@ const state = {
   car: null,
   images: [],
   selected: new Set(),
+  coverFilename: '',
   fileCache: new Map(),
   editorFilename: '',
   editorImage: null,
@@ -217,6 +218,7 @@ function resetResults() {
   state.images = [];
   state.car = null;
   state.selected.clear();
+  state.coverFilename = '';
   state.fileCache.clear();
 }
 
@@ -264,9 +266,16 @@ function renderCarSummary(car) {
   elements.carSummary.hidden = false;
 }
 
-function renderGallery(images) {
+function renderGallery(images, { preserveSelection = false } = {}) {
   elements.photoGrid.innerHTML = '';
-  state.selected = new Set();
+  if (preserveSelection) {
+    const filenames = new Set(images.map((image) => image.filename));
+    state.selected = new Set([...state.selected].filter((filename) => filenames.has(filename)));
+    if (!filenames.has(state.coverFilename)) state.coverFilename = '';
+  } else {
+    state.selected = new Set();
+    state.coverFilename = '';
+  }
   elements.selectAll.checked = false;
   elements.selectAll.indeterminate = false;
   const masked = images.filter((image) => image.platesFound > 0).length;
@@ -275,7 +284,7 @@ function renderGallery(images) {
     ? `${images.length} photos · ${masked} masked${review ? ` · ${review} to review` : ''}`
     : `${images.length} photos ready without plate masking`;
 
-  for (const image of images) elements.photoGrid.append(createPhotoCard(image));
+  images.forEach((image, index) => elements.photoGrid.append(createPhotoCard(image, index)));
   updateSelectionUi();
   elements.galleryPanel.hidden = false;
 
@@ -285,9 +294,11 @@ function renderGallery(images) {
   }
 }
 
-function createPhotoCard(image) {
+function createPhotoCard(image, index) {
+  const isSelected = state.selected.has(image.filename);
+  const isCover = state.coverFilename === image.filename;
   const card = document.createElement('article');
-  card.className = 'photo-card unselected';
+  card.className = `photo-card${isSelected ? '' : ' unselected'}${isCover ? ' cover' : ''}`;
   card.dataset.filename = image.filename;
 
   const selectLabel = document.createElement('label');
@@ -295,15 +306,29 @@ function createPhotoCard(image) {
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.autocomplete = 'off';
-  checkbox.checked = false;
+  checkbox.checked = isSelected;
   checkbox.setAttribute('aria-label', `Select ${image.filename}`);
   checkbox.addEventListener('change', () => {
     if (checkbox.checked) state.selected.add(image.filename);
-    else state.selected.delete(image.filename);
+    else {
+      state.selected.delete(image.filename);
+      if (state.coverFilename === image.filename) {
+        state.coverFilename = '';
+        renderGallery(state.images, { preserveSelection: true });
+        return;
+      }
+    }
     card.classList.toggle('unselected', !checkbox.checked);
     updateSelectionUi();
   });
   selectLabel.append(checkbox);
+
+  if (isCover) {
+    const coverBadge = document.createElement('span');
+    coverBadge.className = 'photo-cover-badge';
+    coverBadge.textContent = 'Cover';
+    card.append(coverBadge);
+  }
 
   const status = document.createElement('span');
   status.className = 'photo-status';
@@ -326,16 +351,47 @@ function createPhotoCard(image) {
   const footer = document.createElement('div');
   footer.className = 'photo-footer';
   const name = document.createElement('span');
-  name.textContent = image.filename;
+  name.textContent = `${index + 1}. ${image.filename}`;
+  name.title = image.filename;
   const tools = document.createElement('div');
   tools.className = 'photo-tools';
+  const coverBtn = miniButton(isCover ? 'Cover ✓' : 'Cover', () => makeCover(image.filename));
+  coverBtn.disabled = isCover;
+  const upBtn = miniButton('↑', () => movePhoto(image.filename, -1));
+  upBtn.title = 'Move earlier';
+  upBtn.setAttribute('aria-label', `Move ${image.filename} earlier`);
+  upBtn.disabled = index === 0 || (Boolean(state.coverFilename) && index === 1);
+  const downBtn = miniButton('↓', () => movePhoto(image.filename, 1));
+  downBtn.title = 'Move later';
+  downBtn.setAttribute('aria-label', `Move ${image.filename} later`);
+  downBtn.disabled = index === state.images.length - 1 || isCover;
   const editBtn = miniButton('Mask', () => openEditor(image.filename));
   const retryBtn = miniButton('Detect', () => reprocessImage(image.filename, retryBtn, status));
   const saveBtn = miniButton('Download', () => saveOneImage(image.filename, saveBtn));
-  tools.append(editBtn, retryBtn, saveBtn);
+  tools.append(coverBtn, upBtn, downBtn, editBtn, retryBtn, saveBtn);
   footer.append(name, tools);
   card.append(selectLabel, status, photo, footer);
   return card;
+}
+
+function makeCover(filename) {
+  const index = state.images.findIndex((image) => image.filename === filename);
+  if (index < 0) return;
+  const [image] = state.images.splice(index, 1);
+  state.images.unshift(image);
+  state.selected.add(filename);
+  state.coverFilename = filename;
+  renderGallery(state.images, { preserveSelection: true });
+  showToast('Cover selected and moved first');
+}
+
+function movePhoto(filename, direction) {
+  const index = state.images.findIndex((image) => image.filename === filename);
+  const target = index + direction;
+  const earliest = state.coverFilename ? 1 : 0;
+  if (index < 0 || target < earliest || target >= state.images.length) return;
+  [state.images[index], state.images[target]] = [state.images[target], state.images[index]];
+  renderGallery(state.images, { preserveSelection: true });
 }
 
 function miniButton(label, handler) {
@@ -365,6 +421,11 @@ function updateSelectionUi() {
 elements.selectAll.addEventListener('change', () => {
   const checked = elements.selectAll.checked;
   state.selected = new Set(checked ? state.images.map((image) => image.filename) : []);
+  if (!checked && state.coverFilename) {
+    state.coverFilename = '';
+    renderGallery(state.images, { preserveSelection: true });
+    return;
+  }
   for (const card of elements.photoGrid.querySelectorAll('.photo-card')) {
     card.querySelector('input[type="checkbox"]').checked = checked;
     card.classList.toggle('unselected', !checked);
@@ -459,7 +520,16 @@ async function getImageFile(filename) {
 
 async function getSelectedFiles() {
   const filenames = state.images.map((image) => image.filename).filter((name) => state.selected.has(name));
-  return Promise.all(filenames.map(getImageFile));
+  const files = await Promise.all(filenames.map(getImageFile));
+  return files.map((file, index) => new File(
+    [file],
+    `${String(index + 1).padStart(2, '0')}-${file.name}`,
+    { type: file.type, lastModified: file.lastModified },
+  ));
+}
+
+function hasAndroidGalleryBridge() {
+  return typeof window.PlateMaskerAndroid?.startDownload === 'function';
 }
 
 async function shareFiles(files, text = '') {
@@ -494,9 +564,14 @@ async function withButtonProgress(button, workingLabel, action) {
 async function saveSelectedToGallery() {
   await withButtonProgress(elements.saveSelectedBtn, 'Preparing photos…', async () => {
     const files = await getSelectedFiles();
+    if (hasAndroidGalleryBridge()) {
+      for (const file of files) await triggerDownload(file, file.name);
+      showToast(`${files.length} photo${files.length === 1 ? '' : 's'} saved to gallery`);
+      return;
+    }
     if (await shareFiles(files)) return;
     if (files.length === 1) {
-      triggerDownload(files[0], files[0].name);
+      await triggerDownload(files[0], files[0].name);
       showToast('Native sharing is blocked; downloaded the photo instead');
       return;
     }
@@ -527,7 +602,7 @@ elements.shareBundleBtn.addEventListener('click', () => {
 async function downloadZip() {
   const files = await getSelectedFiles();
   const blob = await buildZip(files);
-  triggerDownload(blob, `${state.car?.brand || 'car'}-${state.car?.model || 'photos'}.zip`);
+  await triggerDownload(blob, `${state.car?.brand || 'car'}-${state.car?.model || 'photos'}.zip`);
 }
 
 elements.zipBtn.addEventListener('click', () => {
@@ -535,11 +610,31 @@ elements.zipBtn.addEventListener('click', () => {
     .catch((error) => showError(error.message));
 });
 
-function triggerDownload(blob, filename) {
+async function triggerDownload(blob, filename) {
+  const safeFilename = filename.replace(/[^a-zA-Z0-9._-]+/g, '-');
+  if (hasAndroidGalleryBridge()) {
+    const downloadId = window.PlateMaskerAndroid.startDownload(
+      safeFilename,
+      blob.type || 'application/octet-stream',
+    );
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const chunkSize = 49152;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      const chunk = bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length));
+      let binary = '';
+      for (let part = 0; part < chunk.length; part += 8192) {
+        binary += String.fromCharCode(...chunk.subarray(part, Math.min(part + 8192, chunk.length)));
+      }
+      window.PlateMaskerAndroid.appendDownloadChunk(downloadId, btoa(binary));
+      if (offset > 0 && offset % (chunkSize * 16) === 0) await new Promise((resolve) => setTimeout(resolve));
+    }
+    window.PlateMaskerAndroid.finishDownload(downloadId);
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = filename.replace(/[^a-zA-Z0-9._-]+/g, '-');
+  link.download = safeFilename;
   document.body.append(link);
   link.click();
   link.remove();
@@ -550,7 +645,7 @@ async function saveOneImage(filename, button) {
   try {
     await withButtonProgress(button, '…', async () => {
       const file = await getImageFile(filename);
-      triggerDownload(file, filename);
+      await triggerDownload(file, filename);
       showToast('Photo downloaded');
     });
   } catch (error) {

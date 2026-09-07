@@ -382,6 +382,7 @@ button { touch-action: manipulation; }
   background: #f6f8fa;
 }
 .photo-card.unselected { opacity: .5; }
+.photo-card.cover { border-color: #1769e0; box-shadow: 0 0 0 2px rgba(23,105,224,.15); }
 .photo-card > img { width: 100%; aspect-ratio: 5 / 3; display: block; object-fit: cover; background: #e8edf2; cursor: zoom-in; }
 .photo-select {
   position: absolute;
@@ -398,6 +399,19 @@ button { touch-action: manipulation; }
   cursor: pointer;
 }
 .photo-select input { width: 17px; height: 17px; margin: 0; }
+.photo-cover-badge {
+  position: absolute;
+  z-index: 2;
+  top: 46px;
+  left: 9px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(23,105,224,.92);
+  font-size: .64rem;
+  font-weight: 800;
+  backdrop-filter: blur(4px);
+}
 .photo-status {
   position: absolute;
   z-index: 2;
@@ -413,9 +427,9 @@ button { touch-action: manipulation; }
 }
 .photo-status.review { background: rgba(177,92,0,.91); }
 .photo-status.original { background: rgba(70,83,99,.88); }
-.photo-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; }
+.photo-footer { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 9px 10px; }
 .photo-footer span { min-width: 0; overflow: hidden; color: var(--muted); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
-.photo-tools { display: flex; flex: 0 0 auto; gap: 4px; }
+.photo-tools { display: flex; flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 .mini-btn {
   min-height: 31px;
   padding: 5px 8px;
@@ -428,6 +442,7 @@ button { touch-action: manipulation; }
   cursor: pointer;
 }
 .mini-btn:hover { background: #dce4ed; }
+.mini-btn:disabled { opacity: .48; cursor: default; }
 
 .modal-backdrop {
   position: fixed;

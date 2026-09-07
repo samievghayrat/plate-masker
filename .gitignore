@@ -4,3 +4,7 @@ models/
 .env
 .vercel
 .env*
+/android/.gradle/
+/android/build/
+/android/local.properties
+/android/app/build/

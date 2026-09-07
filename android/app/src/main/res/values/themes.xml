@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.PlateMasker" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F5F8FC</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:colorAccent">#1769E0</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
