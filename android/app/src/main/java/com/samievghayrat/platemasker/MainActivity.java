@@ -2,6 +2,8 @@ package com.samievghayrat.platemasker;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -181,6 +183,20 @@ public final class MainActivity extends Activity {
 
         DownloadBridge(Context context) {
             this.context = context.getApplicationContext();
+        }
+
+        @JavascriptInterface
+        public String getClipboardText() {
+            try {
+                ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard == null || !clipboard.hasPrimaryClip()) return "";
+                ClipData clip = clipboard.getPrimaryClip();
+                if (clip == null || clip.getItemCount() == 0) return "";
+                CharSequence text = clip.getItemAt(0).coerceToText(context);
+                return text == null ? "" : text.toString();
+            } catch (Exception error) {
+                return "";
+            }
         }
 
         @JavascriptInterface

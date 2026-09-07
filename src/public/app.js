@@ -4,6 +4,7 @@ const $ = (selector) => document.querySelector(selector);
 
 const elements = {
   urlInput: $('#urlInput'),
+  urlField: $('.url-field'),
   pasteBtn: $('#pasteBtn'),
   clearBtn: $('#clearBtn'),
   processBtn: $('#processBtn'),
@@ -96,22 +97,45 @@ elements.watermarkToggle.addEventListener('change', () => {
   if (!elements.watermarkToggle.checked) elements.watermarkSettings.open = false;
 });
 
-elements.urlInput.addEventListener('input', () => {
-  elements.clearBtn.classList.toggle('visible', Boolean(elements.urlInput.value));
-});
+function syncUrlField() {
+  const hasValue = Boolean(elements.urlInput.value);
+  elements.clearBtn.classList.toggle('visible', hasValue);
+  elements.urlField.classList.toggle('has-value', hasValue);
+}
+
+elements.urlInput.addEventListener('input', syncUrlField);
 elements.urlInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') processListing();
 });
 elements.clearBtn.addEventListener('click', () => {
   elements.urlInput.value = '';
-  elements.clearBtn.classList.remove('visible');
+  syncUrlField();
   elements.urlInput.focus();
 });
+
+async function readClipboardText() {
+  const androidBridge = window.PlateMaskerAndroid;
+  if (androidBridge && typeof androidBridge.getClipboardText === 'function') {
+    const text = androidBridge.getClipboardText();
+    if (text) return text;
+  }
+
+  if (navigator.clipboard?.readText) return navigator.clipboard.readText();
+  throw new Error('Clipboard access is unavailable');
+}
+
 elements.pasteBtn.addEventListener('click', async () => {
   try {
-    elements.urlInput.value = await navigator.clipboard.readText();
-    elements.clearBtn.classList.toggle('visible', Boolean(elements.urlInput.value));
+    const text = (await readClipboardText()).trim();
+    if (!text) {
+      showToast('Буфер обмена пуст');
+      return;
+    }
+    elements.urlInput.value = text;
+    syncUrlField();
     elements.urlInput.focus();
+    elements.urlInput.setSelectionRange(text.length, text.length);
+    showToast('Ссылка вставлена');
   } catch {
     elements.urlInput.focus();
     showToast('Нажмите и удерживайте поле, чтобы вставить ссылку');

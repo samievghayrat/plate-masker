@@ -141,7 +141,7 @@ button { touch-action: manipulation; }
   background: var(--blue-soft);
 }
 
-.url-row { display: flex; gap: 10px; }
+.url-row { display: block; }
 .url-field { position: relative; flex: 1; }
 .url-field > svg {
   position: absolute;
@@ -159,7 +159,7 @@ button { touch-action: manipulation; }
 .url-field input {
   width: 100%;
   height: 52px;
-  padding: 0 46px 0 45px;
+  padding: 0 134px 0 45px;
   color: var(--ink);
   border: 1.5px solid #cfd9e5;
   border-radius: 13px;
@@ -173,6 +173,7 @@ button { touch-action: manipulation; }
   box-shadow: 0 0 0 4px rgba(23, 105, 224, .11);
 }
 .url-field input::placeholder { color: #98a4b3; }
+.url-field:not(.has-value) input { padding-right: 96px; }
 
 .icon-btn {
   width: 38px;
@@ -190,6 +191,25 @@ button { touch-action: manipulation; }
 .icon-btn:hover { background: #edf2f7; }
 .clear-input { position: absolute; right: 7px; top: 7px; display: none; }
 .clear-input.visible { display: grid; }
+
+.paste-input {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  height: 38px;
+  padding: 0 11px;
+  color: var(--blue);
+  border: 0;
+  border-radius: 9px;
+  background: var(--blue-soft);
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 800;
+}
+.url-field.has-value .paste-input { right: 48px; }
+.paste-input:hover { background: #dceafe; }
+.paste-input:active { transform: scale(.97); }
+.paste-input:focus-visible { outline: 3px solid rgba(23, 105, 224, .23); }
 
 .btn {
   min-height: 44px;
@@ -509,8 +529,6 @@ button { touch-action: manipulation; }
   .privacy-chip { display: none; }
   .container { padding-top: 14px; padding-bottom: calc(38px + env(safe-area-inset-bottom)); }
   .panel { padding: 18px 15px; margin-bottom: 13px; border-radius: 16px; }
-  .url-row { display: grid; grid-template-columns: 1fr auto; }
-  #pasteBtn { padding-inline: 13px; }
   .url-field input { font-size: 16px; }
   .watermark-form { grid-template-columns: 1fr; }
   .car-heading { flex-direction: column; }
