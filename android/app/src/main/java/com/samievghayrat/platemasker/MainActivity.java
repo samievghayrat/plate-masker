@@ -15,6 +15,7 @@ import android.provider.MediaStore;
 import android.util.Base64;
 import android.view.Gravity;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -46,6 +47,8 @@ public final class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.WHITE);
 
         FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.rgb(245, 248, 252));
+        applySystemBarInsets(root);
         webView = new WebView(this);
         webView.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -64,11 +67,30 @@ public final class MainActivity extends Activity {
         root.addView(webView);
         root.addView(progressBar);
         setContentView(root);
+        root.requestApplyInsets();
         configureWebView();
         configureBackNavigation();
 
         if (savedInstanceState == null) webView.loadUrl(APP_URL);
         else webView.restoreState(savedInstanceState);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void applySystemBarInsets(FrameLayout root) {
+        root.setOnApplyWindowInsetsListener((view, windowInsets) -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.graphics.Insets bars = windowInsets.getInsets(WindowInsets.Type.systemBars());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            } else {
+                view.setPadding(
+                        windowInsets.getSystemWindowInsetLeft(),
+                        windowInsets.getSystemWindowInsetTop(),
+                        windowInsets.getSystemWindowInsetRight(),
+                        windowInsets.getSystemWindowInsetBottom()
+                );
+            }
+            return windowInsets;
+        });
     }
 
     @SuppressLint("SetJavaScriptEnabled")
