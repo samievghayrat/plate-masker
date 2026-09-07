@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { extractEncarCarId, generateCarPost } from '../src/encar.mjs';
-import { extractKbCarSeq, parseKbListingHtml } from '../src/kbcar.mjs';
+import { extractKbCarSeq, parseKbListingHtml, resolveKbCarSeq } from '../src/kbcar.mjs';
 
 const sampleCar = {
   brand: 'Kia',
@@ -87,4 +87,20 @@ test('parses a KB Chachacha listing without exposing the plate number', () => {
   assert.equal(car.imageUrls.length, 2);
   assert.doesNotMatch(JSON.stringify(car), /57거2560/);
   assert.doesNotMatch(generateCarPost(car), /57거2560/);
+});
+
+test('resolves a KB Chachacha encoded mobile share link', async () => {
+  const shareUrl = 'https://m.kbchachacha.com/public/web/common/sns/car/detail.kbc?c=oJMKL9GBgXzFpFhXA73l0Q%3D%3D';
+  const requests = [];
+  const carSeq = await resolveKbCarSeq(shareUrl, async (url, options) => {
+    requests.push({ url, options });
+    return {
+      status: 303,
+      headers: { location: '/public/web/car/detail.kbc?carSeq=28708950#' },
+    };
+  });
+
+  assert.equal(carSeq, '28708950');
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].options.maxRedirects, 0);
 });

@@ -35,6 +35,11 @@ function detectDrivetrain(value = '') {
   return '';
 }
 
+function isKbHostname(hostname = '') {
+  const normalized = hostname.toLowerCase();
+  return normalized === 'kbchachacha.com' || normalized.endsWith('.kbchachacha.com');
+}
+
 export function extractKbCarSeq(input) {
   try {
     const url = new URL(input);
@@ -47,6 +52,46 @@ export function extractKbCarSeq(input) {
   } catch {
     return '';
   }
+}
+
+export async function resolveKbCarSeq(input, request = axios.get) {
+  const directCarSeq = extractKbCarSeq(input);
+  if (directCarSeq) return directCarSeq;
+
+  let currentUrl;
+  try {
+    currentUrl = new URL(input);
+  } catch {
+    return '';
+  }
+
+  const isShareLink = isKbHostname(currentUrl.hostname)
+    && /\/common\/sns\/car\/detail\.kbc$/i.test(currentUrl.pathname)
+    && currentUrl.searchParams.has('c');
+  if (!isShareLink) return '';
+
+  for (let redirect = 0; redirect < 3; redirect += 1) {
+    const response = await request(currentUrl.href, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'text/html,application/xhtml+xml',
+        Referer: currentUrl.origin,
+      },
+      maxRedirects: 0,
+      timeout: 20000,
+      validateStatus: (status) => status >= 300 && status < 400,
+    });
+    const location = response.headers?.location;
+    if (!location) return '';
+
+    const nextUrl = new URL(location, currentUrl);
+    if (!isKbHostname(nextUrl.hostname)) return '';
+    const redirectedCarSeq = extractKbCarSeq(nextUrl.href);
+    if (redirectedCarSeq) return redirectedCarSeq;
+    currentUrl = nextUrl;
+  }
+
+  return '';
 }
 
 export function parseKbListingHtml(html, sourceUrl, carSeq = extractKbCarSeq(sourceUrl)) {
@@ -142,7 +187,7 @@ export function parseKbListingHtml(html, sourceUrl, carSeq = extractKbCarSeq(sou
 }
 
 export async function fetchKbListing(url) {
-  const carSeq = extractKbCarSeq(url);
+  const carSeq = await resolveKbCarSeq(url);
   if (!carSeq) throw new Error('В ссылке не найден номер автомобиля KB Chachacha.');
   console.log(`[kbchachacha] Loading structured listing data for car ${carSeq}...`);
   const canonicalUrl = `${KB_ORIGIN}/public/car/detail.kbc?carSeq=${encodeURIComponent(carSeq)}`;
