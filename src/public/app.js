@@ -461,15 +461,19 @@ async function getSelectedFiles() {
 }
 
 async function shareFiles(files, text = '') {
-  if (navigator.canShare?.({ files })) {
+  if (!navigator.share || !navigator.canShare?.({ files })) return false;
+  try {
     await navigator.share({
       title: state.car ? `${state.car.brand} ${state.car.model}` : 'Car photos',
       text: text || undefined,
       files,
     });
     return true;
+  } catch (error) {
+    if (error.name === 'AbortError') throw error;
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') return false;
+    throw error;
   }
-  return false;
 }
 
 async function withButtonProgress(button, workingLabel, action) {
@@ -489,8 +493,13 @@ async function saveSelectedToGallery() {
   await withButtonProgress(elements.saveSelectedBtn, 'Preparing photos…', async () => {
     const files = await getSelectedFiles();
     if (await shareFiles(files)) return;
+    if (files.length === 1) {
+      triggerDownload(files[0], files[0].name);
+      showToast('Native sharing is blocked; downloaded the photo instead');
+      return;
+    }
     await downloadZip();
-    showToast('Direct gallery saving is unavailable; downloaded a ZIP instead');
+    showToast('Native sharing is blocked; downloaded the selected photos as ZIP');
   });
 }
 
