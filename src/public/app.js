@@ -308,19 +308,6 @@ function createPhotoCard(image, index) {
   checkbox.autocomplete = 'off';
   checkbox.checked = isSelected;
   checkbox.setAttribute('aria-label', `Выбрать ${image.filename}`);
-  checkbox.addEventListener('change', () => {
-    if (checkbox.checked) state.selected.add(image.filename);
-    else {
-      state.selected.delete(image.filename);
-      if (state.coverFilename === image.filename) {
-        state.coverFilename = '';
-        renderGallery(state.images, { preserveSelection: true });
-        return;
-      }
-    }
-    card.classList.toggle('unselected', !checkbox.checked);
-    updateSelectionUi();
-  });
   selectLabel.append(checkbox);
 
   if (isCover) {
@@ -346,7 +333,33 @@ function createPhotoCard(image, index) {
   photo.src = imageUrl(image.filename);
   photo.alt = image.filename;
   photo.loading = 'lazy';
-  photo.addEventListener('click', () => window.open(imageUrl(image.filename), '_blank', 'noopener'));
+  photo.tabIndex = 0;
+  photo.setAttribute('role', 'button');
+  photo.setAttribute('aria-pressed', String(isSelected));
+  photo.setAttribute('aria-label', `${isSelected ? 'Снять выбор' : 'Выбрать'} ${image.filename}`);
+
+  const setSelected = (selected) => {
+    if (selected) state.selected.add(image.filename);
+    else state.selected.delete(image.filename);
+    checkbox.checked = selected;
+    card.classList.toggle('unselected', !selected);
+    photo.setAttribute('aria-pressed', String(selected));
+    photo.setAttribute('aria-label', `${selected ? 'Снять выбор' : 'Выбрать'} ${image.filename}`);
+    if (!selected && state.coverFilename === image.filename) {
+      state.coverFilename = '';
+      renderGallery(state.images, { preserveSelection: true });
+      return;
+    }
+    updateSelectionUi();
+  };
+
+  checkbox.addEventListener('change', () => setSelected(checkbox.checked));
+  photo.addEventListener('click', () => setSelected(!state.selected.has(image.filename)));
+  photo.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    setSelected(!state.selected.has(image.filename));
+  });
 
   const footer = document.createElement('div');
   footer.className = 'photo-footer';
