@@ -266,8 +266,8 @@ function renderCarSummary(car) {
 
 function renderGallery(images) {
   elements.photoGrid.innerHTML = '';
-  state.selected = new Set(images.map((image) => image.filename));
-  elements.selectAll.checked = true;
+  state.selected = new Set();
+  elements.selectAll.checked = false;
   const masked = images.filter((image) => image.platesFound > 0).length;
   const review = images.filter((image) => image.maskRequested && image.platesFound === 0).length;
   elements.gallerySummary.textContent = images[0]?.maskRequested
@@ -286,14 +286,14 @@ function renderGallery(images) {
 
 function createPhotoCard(image) {
   const card = document.createElement('article');
-  card.className = 'photo-card';
+  card.className = 'photo-card unselected';
   card.dataset.filename = image.filename;
 
   const selectLabel = document.createElement('label');
   selectLabel.className = 'photo-select';
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
-  checkbox.checked = true;
+  checkbox.checked = false;
   checkbox.setAttribute('aria-label', `Select ${image.filename}`);
   checkbox.addEventListener('change', () => {
     if (checkbox.checked) state.selected.add(image.filename);
