@@ -329,7 +329,7 @@ function createPhotoCard(image) {
   tools.className = 'photo-tools';
   const editBtn = miniButton('Mask', () => openEditor(image.filename));
   const retryBtn = miniButton('Detect', () => reprocessImage(image.filename, retryBtn, status));
-  const saveBtn = miniButton('Save', () => saveOneImage(image.filename, saveBtn));
+  const saveBtn = miniButton('Download', () => saveOneImage(image.filename, saveBtn));
   tools.append(editBtn, retryBtn, saveBtn);
   footer.append(name, tools);
   card.append(selectLabel, status, photo, footer);
@@ -548,8 +548,8 @@ async function saveOneImage(filename, button) {
   try {
     await withButtonProgress(button, '…', async () => {
       const file = await getImageFile(filename);
-      if (await shareFiles([file])) return;
       triggerDownload(file, filename);
+      showToast('Photo downloaded');
     });
   } catch (error) {
     if (error.name !== 'AbortError') showError(error.message);
